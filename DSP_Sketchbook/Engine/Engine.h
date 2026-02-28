@@ -128,7 +128,7 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
             if (fxMod->getNameInternal() == name)
                 return fxMod;
         
-        jassertfalse;
+        //no voice is playing?
         return nullptr;
     }
     

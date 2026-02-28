@@ -14,20 +14,53 @@
 
 namespace sketchbook
 {
+
+class Style
+{
+public:
+    
+    Style()
+    {
+        themeFont.setTypefaceName("Inter Medium");
+    }
+    
+    juce::Colour backgroundColour = {25, 25, 25};
+    juce::Colour themeColour      = juce::Colour::fromRGBA(188, 209, 236, 60);
+    juce::Colour highlightColour  = juce::Colours::whitesmoke.withAlpha(0.4f);
+    juce::Font   themeFont;
+    
+    JUCE_DECLARE_SINGLETON_INLINE(Style, false)
+};
+
 class AppLookAndFeel : public juce::LookAndFeel_V4
 {
     public:
     
     AppLookAndFeel()
     {
-        setDefaultSansSerifTypefaceName("Andale Mono");
+        setDefaultSansSerifTypefaceName(Style::getInstance()->themeFont.getTypefaceName());
         
-        setColour(juce::PopupMenu::backgroundColourId,  juce::Colours::white.withAlpha(0.0f));
+        setColour(juce::ResizableWindow::backgroundColourId, Style::getInstance()->backgroundColour);
         
-        setColour(juce::TextButton::textColourOnId,     juce::Colours::white);
-        setColour(juce::TextButton::textColourOffId,    juce::Colours::whitesmoke);
+        setColour(juce::PopupMenu::backgroundColourId,       Style::getInstance()->backgroundColour);
         
-        setColour(juce::ScrollBar::ColourIds::thumbColourId, {60, 60, 60});
+        setColour(juce::TextButton::textColourOnId,          Style::getInstance()->themeColour.brighter());
+        setColour(juce::TextButton::textColourOffId,         Style::getInstance()->themeColour);
+        
+        setColour(juce::ScrollBar::ColourIds::thumbColourId, Style::getInstance()->themeColour);
+        
+        setColour(juce::Label::textColourId,                 Style::getInstance()->themeColour);
+        
+        setColour(juce::ComboBox::ColourIds::textColourId,   Style::getInstance()->themeColour);
+        setColour(juce::ComboBox::ColourIds::arrowColourId,  Style::getInstance()->themeColour);
+        
+        setColour(juce::ListBox::backgroundColourId,         Style::getInstance()->backgroundColour);
+        setColour(juce::ListBox::outlineColourId,            Style::getInstance()->themeColour);
+        setColour(juce::ListBox::textColourId,               Style::getInstance()->themeColour);
+        
+        setColour(juce::ToggleButton::textColourId,          Style::getInstance()->themeColour);
+        setColour(juce::ToggleButton::tickColourId,               Style::getInstance()->highlightColour);
+        setColour(juce::ToggleButton::tickDisabledColourId,       Style::getInstance()->themeColour);
     }
     
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float sliderPosProportional, float rotaryStartAngle, float rotaryEndAngle, juce::Slider &slider) override
@@ -99,7 +132,7 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
         //if mouseOver or isDragging then draw text
         if (ss->isMouseOverOrDragging())
         {
-            g.setFont(10);
+            g.setFont(Style::getInstance()->themeFont.withHeight(10));
             g.setColour(juce::Colours::black);
             g.drawText(juce::String::toDecimalStringWithSignificantFigures(ss->getValue(), 2),
                        knobArea.reduced(5), juce::Justification::centred);
@@ -163,7 +196,7 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
     //MARK: POPUP Menu (right click)
     void drawPopupMenuBackground (juce::Graphics &g, int width, int height) override
     {
-        g.setColour(juce::Colours::white);
+        g.setColour(Style::getInstance()->backgroundColour);
         g.fillRoundedRectangle(juce::Rectangle<int>(width, height).toFloat(), 6.0);
     }
     
@@ -178,15 +211,20 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
         if (isSeparator)
         {
             auto a = area.reduced(5);
-            g.setColour(juce::Colours::black);
+            g.setColour(Style::getInstance()->themeColour);
             g.drawLine(a.getX(), a.getHeight() / 2, a.getWidth(), a.getHeight() / 2, 2.0);
         }
         else
         {
             if (isHighlighted)
             {
-                g.fillAll(juce::Colours::lightgrey);
+                g.setColour(Style::getInstance()->highlightColour);
             }
+            else
+            {
+                g.setColour(Style::getInstance()->themeColour);
+            }
+            
             g.drawText(text, area, juce::Justification::centred);
         }
     }
@@ -207,14 +245,13 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
                               bool  shouldDrawButtonAsDown) override
     {
         auto area = button.getLocalBounds().toFloat();
-        juce::Colour grey = {55, 55, 55};
-        g.setColour(button.getToggleState() ? grey.brighter() : grey);
+        g.setColour(button.getToggleState() ? Style::getInstance()->themeColour.brighter() : Style::getInstance()->themeColour);
         g.drawRoundedRectangle(area.reduced(1.0), area.getHeight() / 2, 1.5);
     }
     
     juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override
     {
-        return juce::Font(juce::FontOptions("Andale Mono", 12, juce::Font::bold));
+        return Style::getInstance()->themeFont.withHeight(12);
     }
     
     void drawComboBox (juce::Graphics& g, int width, int height, bool isButtonDown,
@@ -222,8 +259,8 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
                        juce::ComboBox& comboBox) override
     {
         auto area = comboBox.getLocalBounds().toFloat();
-        juce::Colour grey = {55, 55, 55};
-        g.setColour(grey);
+
+        g.setColour(Style::getInstance()->themeColour);
         g.drawRoundedRectangle(area.reduced(1.0), area.getHeight() / 2, 1.5);
         
         juce::Rectangle<int> arrowZone (width - 25, 0, 18, height);
@@ -232,13 +269,28 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
         path.lineTo ((float) arrowZone.getCentreX(), (float) arrowZone.getCentreY() + 3.0f);
         path.lineTo ((float) arrowZone.getRight() - 3.0f, (float) arrowZone.getCentreY() - 2.0f);
         
-        g.setColour(grey.withAlpha((comboBox.isEnabled() ? 0.9f : 0.2f)));
+        g.setColour(Style::getInstance()->themeColour.withAlpha((comboBox.isEnabled() ? 0.9f : 0.2f)));
         g.strokePath(path, juce::PathStrokeType (2.0f));
     }
     
     juce::Font getComboBoxFont (juce::ComboBox&) override
     {
-        return juce::Font(juce::FontOptions("Andale Mono", 12, juce::Font::bold));
+        return Style::getInstance()->themeFont.withHeight(12);
+    }
+    
+    void drawCallOutBoxBackground (juce::CallOutBox&, juce::Graphics& g, const juce::Path&, juce::Image&) override
+    {
+        g.fillAll(juce::Colours::transparentBlack);
+    }
+    
+    virtual int getCallOutBoxBorderSize (const juce::CallOutBox&) override
+    {
+        return 0;
+    }
+    
+    virtual float getCallOutBoxCornerSize (const juce::CallOutBox&) override
+    {
+        return 0;
     }
 };
 

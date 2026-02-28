@@ -10,55 +10,6 @@
 
 #pragma once
 //==============================================================================
-class Convolution : public sketchbook::Module
-{
-public:
-    //==============================================================================
-    Convolution()
-    {
-        auto dir = juce::File::getCurrentWorkingDirectory();
-        //int numTries = 0;
-
-        //TODO: load here
-        dir = "/Users/billy/Documents/git/StringSimEngine/Impulses/";
-        juceConvolution.loadImpulseResponse (dir.getChildFile ("Classical_AKG.wav"),
-                                         juce::dsp::Convolution::Stereo::yes,
-                                         juce::dsp::Convolution::Trim::no,
-                                         1024);
-        
-        setModuleParameters({ });
-    }
-    
-    juce::String getName() override
-    {
-        return "Convolution";
-    }
-
-    //==============================================================================
-    void prepareToPlay (float samplerate, int buffersize) override
-    {
-        juce::dsp::ProcessSpec spec = {double(samplerate), juce::uint32(buffersize), juce::uint32(2)};
-        juceConvolution.prepare(spec);
-    }
-
-    //==============================================================================
-    void process (juce::AudioBuffer<float>& buffer) noexcept override
-    {
-        auto block = juce::dsp::AudioBlock<float>(buffer);
-        juce::dsp::ProcessContextReplacing<float> ctx(block);
-        juceConvolution.process(ctx);
-    }
-
-    //==============================================================================
-    void reset() noexcept override
-    {
-        juceConvolution.reset();
-    }
-
-private:
-
-    juce::dsp::Convolution juceConvolution;
-};
 
 /*
 //==============================================================================

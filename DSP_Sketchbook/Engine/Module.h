@@ -156,7 +156,7 @@ class Module : public juce::ValueTree::Listener
             
             Mapping(juce::ValueTree _data, Module* _sourceModule);
             Mapping(const Mapping& other);
-            ~Mapping();
+            virtual ~Mapping();
             void valueTreePropertyChanged(juce::ValueTree &treeWhosePropertyHasChanged,
                                           const juce::Identifier &property) override;
         };

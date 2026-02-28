@@ -18,6 +18,220 @@
 namespace sketchbook
 {
 
+class MatrixMenuButton : public juce::TextButton
+{
+    class MatrixMenuPopup : public juce::Component
+    {
+        public:
+        MatrixMenuPopup(juce::StringArray options)
+        {
+            for (auto str : options)
+            {
+                auto row = new juce::Label();
+                addChildComponent(row);
+                row->addMouseListener(this, true);
+                row->setText(str, juce::dontSendNotification);
+                row->setJustificationType(juce::Justification::centred);
+                row->setColour(juce::Label::textColourId, Style::getInstance()->themeColour);
+                rows.add(row);
+            }
+                
+            animatorUpdater.addAnimator(sizeAnimator);
+            sizeAnimator.start();
+        }
+        
+        ~MatrixMenuPopup()
+        {
+            for (auto r : rows)
+            {
+                if (r)
+                {
+                    delete r;
+                    r = nullptr;
+                }
+            }
+        }
+        
+        void setInitialSize(juce::Rectangle<int> size, float cornerRadius)
+        {
+            m_initialSize = size;
+            m_initialCornerRadius = cornerRadius;
+        }
+        
+        void paint(juce::Graphics& g) override
+        {
+            float x      = getLocalBounds().getX() + (getWidth() - m_initialSize.getWidth()) * (1.f - m_animProgress01);
+            float width  = m_initialSize.getWidth() + (getWidth() - m_initialSize.getWidth()) * m_animProgress01;
+            float height = m_initialSize.getHeight() + (getHeight() - m_initialSize.getHeight()) * m_animProgress01;
+            float corner = m_initialCornerRadius + (m_expandedCornerRadius - m_initialCornerRadius) * m_animProgress01;
+            juce::Rectangle<float> shape(x, 0, width, height);
+            g.setColour(Style::getInstance()->backgroundColour);
+            g.fillRoundedRectangle(shape, corner);
+            
+            g.setColour(Style::getInstance()->themeColour);
+            g.drawRoundedRectangle(shape.reduced(0.5f), corner, 1.f);
+        }
+        
+        void resized() override
+        {
+            auto area = getLocalBounds();
+            
+            area.removeFromTop(RowHeight / 2);
+            for (auto r : rows)
+                r->setBounds(area.removeFromTop(RowHeight));
+        }
+        
+        std::function<void(juce::String)> optionSelected;
+        static const int RowHeight = 20;
+        
+        private:
+        
+        void mouseEnter(const juce::MouseEvent& event) override
+        {
+            for (auto r : rows)
+            {
+                if (event.eventComponent == r)
+                {
+                    r->setColour(juce::Label::textColourId, Style::getInstance()->highlightColour);
+                    r->repaint();
+                }
+            }
+        }
+        
+        void mouseExit(const juce::MouseEvent& event) override
+        {
+            for (auto r : rows)
+            {
+                if (event.eventComponent == r)
+                {
+                    r->setColour(juce::Label::textColourId, Style::getInstance()->themeColour);
+                    r->repaint();
+                }
+            }
+        }
+        
+        void mouseUp(const juce::MouseEvent& event) override
+        {
+            if (!event.eventComponent->contains(event.getPosition()))
+                return;
+            
+            for (auto r : rows)
+            {
+                if (event.eventComponent == r)
+                {
+                    optionSelected(r->getText());
+                    juce::ModalComponentManager::getInstance()->cancelAllModalComponents();
+                }
+            }
+        }
+        
+        juce::VBlankAnimatorUpdater animatorUpdater {this};
+        juce::Animator sizeAnimator = juce::ValueAnimatorBuilder()
+            .withEasing(juce::Easings::createEaseIn())
+            .withDurationMs (130)
+            .withValueChangedCallback ([this] (float value)
+            {
+                m_animProgress01 = value;
+                repaint();
+            })
+            .withOnCompleteCallback([this] ()
+            {
+                for (auto r : rows)
+                    r->setVisible(true);
+            })
+            .build();
+        
+        juce::Rectangle<int> m_initialSize;
+        float m_initialCornerRadius;
+        float m_expandedCornerRadius=5;
+        float m_animProgress01=0;
+        juce::Array<juce::Label*> rows;
+    };
+    
+    public:
+    
+    MatrixMenuButton()
+    {
+        setButtonText("Mod");
+        setClickingTogglesState(false);
+        setInterceptsMouseClicks(true, true);
+        setTriggeredOnMouseDown(true);
+    }
+    
+    void setData(juce::ValueTree newData)
+    {
+        data = newData;
+    }
+    
+    private:
+    
+    juce::StringArray getModulationSourceNames()
+    {
+        auto sources = data.getRoot().getChildWithName(Module::ParamIdents::MODULATION_SOURCES);
+        if (!sources.isValid()) return {};
+        
+        juce::StringArray output;
+        for (auto sourceModule : sources)
+            output.add(sourceModule[Module::ParamIdents::NAME]);
+        
+        return output;
+    }
+    
+    void clicked() override
+    {
+        //add the menu as a popup
+        const auto optionsList = getModulationSourceNames();
+        const juce::Rectangle<int> size = {120,
+                                           MatrixMenuPopup::RowHeight * (optionsList.size() + 1)}; //plus one for spacing top and bottom
+        
+        auto popup = std::make_unique<MatrixMenuPopup>(optionsList);
+        popup->setName("Matrix Menu");
+        popup->setSize(size.getWidth(), size.getHeight());
+        popup->setInitialSize(getLocalBounds(), getHeight() / 2);
+        popup->optionSelected = [sp = SafePointer<MatrixMenuButton>(this)] (juce::String selection)
+        {
+           sp->data.addChild(Module::ModifiedParameter::defaultMappingTo(selection), -1, nullptr);
+        };
+        
+        auto calloutPos = size.withPosition(getScreenBounds().getRight() - size.getWidth(), getScreenBounds().getY());
+        auto& callout = juce::CallOutBox::launchAsynchronously(std::move(popup),
+                                                              size,
+                                                              nullptr);
+        callout.setLookAndFeel(&getLookAndFeel());
+        callout.setArrowSize(0);
+        callout.updatePosition(size, calloutPos);
+    }
+    
+    private:
+    juce::ValueTree data;
+};
+
+class OnOffButton : public juce::TextButton
+{
+    public:
+    OnOffButton()
+    {
+        setButtonText(getToggleState() ? m_onText : m_offText);
+    }
+    
+    void setOnOffText(juce::String onText, juce::String offText)
+    {
+        m_onText = onText;
+        m_offText = offText;
+        setButtonText(getToggleState() ? m_onText : m_offText);
+    }
+    
+    void buttonStateChanged() override
+    {
+        setButtonText(getToggleState() ? m_onText : m_offText);
+        repaint();
+    }
+    
+    private:
+    juce::String m_onText = "On";
+    juce::String m_offText = "Off";
+};
+
 class ExpandableListBox : public juce::Viewport
 {
     public:
@@ -37,23 +251,28 @@ class ExpandableListBox : public juce::Viewport
             Header(juce::String titleText)
             {
                 addAndMakeVisible(titleLabel);
-                titleLabel.setJustificationType(juce::Justification::centredLeft);
+                titleLabel.setJustificationType(juce::Justification::centred);
+                titleLabel.setFont(Style::getInstance()->themeFont.withHeight(14.f));
+                titleLabel.setColour(juce::Label::ColourIds::textColourId, Style::getInstance()->themeColour);
                 titleLabel.setText(titleText.replace("_", " "), juce::dontSendNotification);
-                titleLabel.setFont(juce::FontOptions("Andale Mono", 14.f, juce::Font::plain));
+                
                 arrowIcon.reset(juce::Drawable::createFromImageData(DSP_SKETCHBOOK_BINARY::arrowdown_svg,
                                                                     DSP_SKETCHBOOK_BINARY::arrowdown_svgSize).release());
+                arrowIcon->replaceColour(juce::Colours::white, Style::getInstance()->themeColour);
+                
                 animatorUpdater.addAnimator(arrowAnimator);
             }
             
             void resized() override
             {
-                titleLabel.setBounds(getLocalBounds());
-                arrowIcon->setBounds(getLocalBounds().removeFromRight(Height*1.5).removeFromLeft(Height * 0.7));
+                auto area = getLocalBounds();
+                titleLabel.setBounds(area);
+                arrowIcon->setBounds(area.removeFromRight(Height * 1.5).removeFromLeft(Height * 0.7));
             }
             
             void paint(juce::Graphics& g) override
             {
-                arrowIcon->setTransform(juce::AffineTransform::rotation(arrowAngleRadians, arrowIcon->getWidth() * 0.333, arrowIcon->getHeight() * 0.333));
+                arrowIcon->setTransform(juce::AffineTransform::rotation(arrowAngleRadians, arrowIcon->getWidth() * 0.333, arrowIcon->getHeight() * 0.22));
                 arrowIcon->drawWithin(g, arrowIcon->getBounds().toFloat(), juce::RectanglePlacement::centred, 1.0);
             }
             
@@ -62,12 +281,22 @@ class ExpandableListBox : public juce::Viewport
                 arrowAnimator.start();
             }
             
-            static const int Height = 25;
+            juce::Component& getTitleComp()
+            {
+                return titleLabel;
+            }
+            
+            juce::Component& getArrowComp()
+            {
+                return *arrowIcon.get();
+            }
+            
+            static const int Height = 38;
             
             private:
             
             juce::Label titleLabel;
-            std::unique_ptr <juce::Drawable> arrowIcon;
+            std::unique_ptr<juce::Drawable> arrowIcon;
             
             //for dropdown animation
             float arrowAngleRadians = 0.0f;
@@ -79,25 +308,31 @@ class ExpandableListBox : public juce::Viewport
                 .withEasing(juce::Easings::createLinear())
                 .withDurationMs (150)
                 .withValueChangedCallback ([this] (float value)
-                                           {
+                {
                     arrowAngleRadians = (isOpen ? 1.f - value : value) * maxAngleRadians;
                     repaint();
                 })
                 .withOnCompleteCallback([this] ()
-                                        {
+                {
                     isOpen = !isOpen;
                 })
                 .build();
         };
         
-        ListItemHolder(ExpandableListItem* content, juce::String headerTitle)
-        : m_header(headerTitle)
-        , m_content(content)
+        ListItemHolder(ExpandableListItem* content, juce::String headerTitle, std::unique_ptr<Header> headerComp = nullptr)
+        : m_content(content)
         {
             jassert(content);
-            addAndMakeVisible(m_header);
             addAndMakeVisible(m_content);
-            m_header.addMouseListener(this, true);
+            
+            if (headerComp)
+                m_header = std::move(headerComp);
+            else
+                m_header.reset(new Header(headerTitle));
+            
+            addAndMakeVisible(m_header.get());
+            m_header->addMouseListener(this, true);
+            
             animatorUpdater.addAnimator(dropDownAnimator);
         }
         
@@ -107,7 +342,7 @@ class ExpandableListBox : public juce::Viewport
                 .withTrimmedTop(currentVerticalPadding)
                 .withTrimmedBottom(minVerticalPadding);
             
-            m_header.setBounds(area.removeFromTop(ListItemHolder::Header::Height));
+            m_header->setBounds(area.removeFromTop(ListItemHolder::Header::Height));
             if (m_content)
                 m_content->setBounds(area);
         }
@@ -119,16 +354,19 @@ class ExpandableListBox : public juce::Viewport
         
         void mouseUp(const juce::MouseEvent& event) override
         {
-            dropDownAnimator.start();
-            m_header.startAnimation();
+            if (event.eventComponent == m_header.get()
+                || event.eventComponent == &m_header->getTitleComp()
+                || event.eventComponent == &m_header->getArrowComp())
+            {
+                dropDownAnimator.start();
+                m_header->startAnimation();
+            }
         }
         
         void paint(juce::Graphics& g) override
         {
-            g.setColour(juce::Colour::fromRGB(25, 25, 25));
-            g.fillRoundedRectangle(getLocalBounds().reduced(6, 0)
-                                   .withTrimmedTop(currentVerticalPadding)
-                                   .toFloat(), 4);
+            g.setColour(Style::getInstance()->themeColour);
+            g.drawRoundedRectangle(getLocalBounds().withTrimmedTop(currentVerticalPadding).toFloat().reduced(1.5f), 2.5, 1.f);
         }
         
         std::function<void()> onSizeChange;
@@ -142,7 +380,7 @@ class ExpandableListBox : public juce::Viewport
         const float minVerticalPadding = 4.0f;
         float currentVerticalPadding = minVerticalPadding;
         
-        ListItemHolder::Header m_header;
+        std::unique_ptr<Header> m_header;
         ExpandableListItem* m_content = nullptr;
         
         //for dropdown animation
@@ -195,9 +433,9 @@ class ExpandableListBox : public juce::Viewport
         }
         
         
-        void addItem(ExpandableListItem* item, juce::String headerText)
+        void addItem(ExpandableListItem* item, juce::String headerText, std::unique_ptr<ExpandableListBox::ListItemHolder::Header> headerComp = nullptr)
         {
-            auto itemHolder = new ListItemHolder(item, headerText);
+            auto itemHolder = new ListItemHolder(item, headerText, std::move(headerComp));
             m_items.add(itemHolder);
             addAndMakeVisible(itemHolder);
             itemHolder->onSizeChange = [this] ()
@@ -227,9 +465,9 @@ class ExpandableListBox : public juce::Viewport
         getVerticalScrollBar().setAutoHide(false);
     }
     
-    void addItem(ExpandableListItem* item, juce::String headerText)
+    void addItem(ExpandableListItem* item, juce::String headerText, std::unique_ptr<ExpandableListBox::ListItemHolder::Header> headerComp = nullptr)
     {
-        listHolder.addItem(item, headerText);
+        listHolder.addItem(item, headerText, std::move(headerComp));
     }
     
     void resized() override
@@ -242,90 +480,6 @@ class ExpandableListBox : public juce::Viewport
 
 class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listener
 {
-    class EnablementRow : public juce::Component, public juce::ValueTree::Listener
-    {
-        public:
-        EnablementRow()
-        {
-            addAndMakeVisible   (titleLabel);
-            titleLabel.setJustificationType(juce::Justification::centredLeft);
-            titleLabel.setFont(juce::FontOptions("Andale Mono", 14.f, juce::Font::plain));
-            titleLabel.setText ("Enabled", juce::dontSendNotification);
-            
-            addAndMakeVisible   (onOffButton);
-        }
-        
-        ~EnablementRow() override
-        {
-            if (data.isValid())
-                data.removeListener (this);
-        }
-        
-        void setData (juce::ValueTree _data)
-        {
-            //skip if new data invalid
-            if (!_data.isValid())
-                return;
-            
-            //remove listeners to old data
-            if (data.isValid())
-                data.removeListener (this);
-            
-            data = _data;
-            data.addListener(this);
-            
-            
-            onOffButton.setButtonText("on/off");
-            onOffButton.setClickingTogglesState (true);
-            onOffButton.setToggleState(data[Module::ParamIdents::ENABLED], juce::dontSendNotification);
-            onOffButton.onStateChange = [this] ()
-            {
-                data.setProperty (Module::ParamIdents::ENABLED, onOffButton.getToggleState(), nullptr);
-            };
-            
-            data.addListener (this);
-        }
-        
-        juce::StringArray getModulationSourceNames()
-        {
-            auto sources = data.getRoot().getChildWithName(Module::ParamIdents::MODULATION_SOURCES);
-            if (!sources.isValid()) return {};
-            
-            juce::StringArray output;
-            for (auto sourceModule : sources)
-                output.add(sourceModule[Module::ParamIdents::NAME]);
-            
-            return output;
-        }
-        
-        void resized() override
-        {
-            auto area = getLocalBounds();
-            int w = getWidth() / 4;
-            titleLabel.setBounds(area.removeFromLeft (w));
-            onOffButton.setBounds(area.removeFromRight(w).reduced(3));
-        }
-        
-        static const int getRowHeight()
-        {
-            return 35;
-        }
-        
-        private:
-        
-        void valueTreePropertyChanged(juce::ValueTree &tree, const juce::Identifier &property) override
-        {
-            if (property == Module::ParamIdents::ENABLED)
-            {
-                onOffButton.setToggleState(bool(tree[property]), juce::dontSendNotification);
-            }
-        }
-        
-        private:
-        juce::Label titleLabel;
-        juce::TextButton onOffButton;
-        juce::ValueTree data;
-    };
     
     class ParameterRow : public juce::Component, public juce::ValueTree::Listener
     {
@@ -335,13 +489,14 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         {
             addAndMakeVisible   (parameterTitleLabel);
             parameterTitleLabel.setJustificationType(juce::Justification::centredLeft);
-            parameterTitleLabel.setFont(juce::FontOptions("Andale Mono", 14.f, juce::Font::plain));
+            parameterTitleLabel.setFont(Style::getInstance()->themeFont.withHeight(14));
+            parameterTitleLabel.setColour(juce::Label::ColourIds::textColourId, Style::getInstance()->themeColour);
             
             addChildComponent(slider);
             addChildComponent(integerStepper);
             addChildComponent(toggleButton);
             addChildComponent(comboOptions);
-            addChildComponent(modulationSources);
+            addAndMakeVisible(addModButton);
         }
         
         ~ParameterRow() override
@@ -388,7 +543,6 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
                 case Module::parameterType::booleanParam:
                 {
                     toggleButton.setToggleState(data[Module::ParamIdents::VALUE], juce::sendNotification);
-                    toggleButton.setButtonText("on/off");
                     toggleButton.setClickingTogglesState (true);
                     toggleButton.onClick = [this]
                     {
@@ -408,34 +562,14 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
                     };
                     break;
                 }
+                case Module::parameterType::numParameterTypes:
                 default: break;
             };
             
             setControlVisibilityForParamType();
             parameterTitleLabel.setText (data[Module::ParamIdents::PARAMETER_NAME], juce::dontSendNotification);
             
-            modulationSources.clear();
-            modulationSources.addItemList(getModulationSourceNames(), 1);
-            modulationSources.setTextWhenNothingSelected("Add Mapping");
-            modulationSources.setTextWhenNoChoicesAvailable("No Modulation Sources Available");
-            modulationSources.onChange = [sp = SafePointer<ParameterRow>(this)] ()
-            {
-                int index = sp->modulationSources.getSelectedItemIndex();
-                sp->data.addChild(Module::ModifiedParameter::defaultMappingTo(sp->getModulationSourceNames()[index]), -1, nullptr);
-                sp->modulationSources.setSelectedId(0, juce::dontSendNotification);
-            };
-        }
-        
-        juce::StringArray getModulationSourceNames()
-        {
-            auto sources = data.getRoot().getChildWithName(Module::ParamIdents::MODULATION_SOURCES);
-            if (!sources.isValid()) return {};
-            
-            juce::StringArray output;
-            for (auto sourceModule : sources)
-                output.add(sourceModule[Module::ParamIdents::NAME]);
-            
-            return output;
+            addModButton.setData(data);
         }
         
         void paint (juce::Graphics& g) override
@@ -478,11 +612,11 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         {
             auto area = getLocalBounds();
             int w = getWidth() / 4;
-            parameterTitleLabel .setBounds (area.removeFromLeft (w).reduced(3));
+            parameterTitleLabel.setBounds (area.removeFromLeft (w).reduced(3));
             
-            if (modulationSources.isVisible())
+            if (addModButton.isVisible())
             {
-                modulationSources   .setBounds(area.removeFromRight(w).reduced(3));
+                addModButton.setBounds(area.removeFromRight(w).reduced(3));
             }
             
             slider              .setBounds(juce::Rectangle<int>(area).removeFromRight(w).reduced(0, 3));
@@ -525,7 +659,7 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         void setControlVisibilityForParamType()
         {
             auto type = getParamType(data);
-            modulationSources.setVisible(type == Module::parameterType::floatParam);
+            addModButton     .setVisible(type == Module::parameterType::floatParam);
             slider           .setVisible(type == Module::parameterType::floatParam);
             integerStepper   .setVisible(type == Module::parameterType::intParam);
             toggleButton     .setVisible(type == Module::parameterType::booleanParam);
@@ -536,11 +670,67 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         
         StyledLinearSlider  slider;
         juce::Slider        integerStepper;
-        juce::TextButton          toggleButton;
-        juce::ComboBox            comboOptions;
+        OnOffButton         toggleButton;
+        juce::ComboBox      comboOptions;
         
-        juce::ComboBox modulationSources;
+        MatrixMenuButton addModButton;
         juce::ValueTree data;
+    };
+    
+    class ExpandableModuleHeader : public ExpandableListBox::ListItemHolder::Header, public juce::ValueTree::Listener
+    {
+    public:
+        ExpandableModuleHeader(juce::String headerText)
+        : ExpandableListBox::ListItemHolder::Header(headerText)
+        {
+            addAndMakeVisible(onOffButton);
+            onOffButton.setClickingTogglesState(true);
+        }
+        
+        ~ExpandableModuleHeader() override
+        {
+            if (data.isValid())
+                data.removeListener(this);
+        }
+        
+        void resized() override
+        {
+            ExpandableListBox::ListItemHolder::Header::resized();
+            onOffButton.setBounds(getLocalBounds().removeFromLeft(int(Height * 1.5f)));
+        }
+        
+        void setData (juce::ValueTree _data)
+        {
+            //skip if new data invalid
+            if (!_data.isValid())
+                return;
+            
+            //remove listeners to old data
+            if (data.isValid())
+                data.removeListener (this);
+            
+            data = _data;
+            data.addListener(this);
+            
+            onOffButton.setClickingTogglesState (true);
+            onOffButton.setToggleState(data[Module::ParamIdents::ENABLED], juce::dontSendNotification);
+            onOffButton.onStateChange = [this] ()
+            {
+                data.setProperty (Module::ParamIdents::ENABLED, onOffButton.getToggleState(), nullptr);
+            };
+            
+            data.addListener (this);
+        }
+        
+        void valueTreePropertyChanged(juce::ValueTree& tree, const juce::Identifier& property) override
+        {
+            if (tree == data && property == Module::ParamIdents::ENABLED)
+                onOffButton.setToggleState(bool(data[Module::ParamIdents::ENABLED]), juce::dontSendNotification);
+        }
+        
+    private:
+        juce::ValueTree data;
+        OnOffButton onOffButton;
     };
     
     class ExpandableModule : public ExpandableListItem
@@ -581,15 +771,6 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         void setData(juce::ValueTree newData)
         {
             data = newData;
-            
-            //create a row for module enablement
-            if (data.hasProperty(Module::ParamIdents::ENABLED))
-            {
-                auto enablementRow = new EnablementRow();
-                enablementRow->setData(data);
-                addAndMakeVisible(enablementRow);
-                rows.add(enablementRow);
-            }
             
             for (auto row : data.getChildWithName(Module::ParamIdents::PARAMETERS))
             {
@@ -632,9 +813,10 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         auto tree = getModulesData(data);
         for (auto sourceData : tree)
         {
+            auto header = std::make_unique<ExpandableModuleHeader>(sourceData[Module::ParamIdents::NAME].toString());
             auto panel = new ExpandableModule(ctx);
             panel->setData(sourceData);
-            addItem(panel, sourceData[Module::ParamIdents::NAME]);
+            addItem(panel, "", std::move(header));
         }
         resized();
     }
@@ -803,7 +985,7 @@ class Pages  : public juce::Component
         : ctx(_ctx)
         {
             setModel(this);
-            setColour(juce::ListBox::ColourIds::backgroundColourId, juce::Colours::white.withAlpha(0.f));
+            setColour(juce::ListBox::ColourIds::backgroundColourId, Style::getInstance()->backgroundColour.withAlpha(0.f));
             setRowHeight(44);
         }
         
@@ -925,8 +1107,6 @@ class Pages  : public juce::Component
         addChildComponent(modulationsPage);
         addChildComponent(modulationSourcesPage);
         addChildComponent(fxPage);
-        
-        setColour(juce::TabbedComponent::ColourIds::backgroundColourId, juce::Colours::white.withAlpha(0.f));
         
         //show first page on start
         showPage(0);

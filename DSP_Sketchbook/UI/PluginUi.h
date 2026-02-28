@@ -10,9 +10,91 @@
 
 #pragma once
 #include "ParamaterPages.h"
+#include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 
 namespace sketchbook
 {
+
+class KeyboardWindow : public juce::DocumentWindow
+{
+    public:
+    
+    class KeyboardComponent : public juce::MidiKeyboardComponent
+    {
+        public:
+        KeyboardComponent(juce::MidiKeyboardState& state, Orientation orientation)
+        : MidiKeyboardComponent(state, orientation)
+        {
+            setMidiChannel (1);
+            setAvailableRange(48, 91);
+            setColour(juce::MidiKeyboardComponent::ColourIds::blackNoteColourId, {28, 28, 28});
+            setColour(juce::MidiKeyboardComponent::ColourIds::whiteNoteColourId, {220, 220, 220});
+        }
+        
+        void drawBlackNote(int /*midiNoteNumber*/, juce::Graphics& g, juce::Rectangle<float> area,
+                           bool isDown, bool isOver, juce::Colour noteFillColour) override
+        {
+            juce::Colour colour = isDown ? juce::Colour(35, 35, 35) : juce::Colour(28, 28, 28);
+            g.setColour(colour);
+            g.fillRect(area);
+        }
+        
+        /*
+         void drawWhiteNote(int midiNoteNumber, Graphics& g, Rectangle<float> area,
+         bool isDown, bool isOver, Colour lineColour, Colour textColour) override
+         */
+    };
+    
+    class WindowContent : public juce::Component
+    {
+        public:
+        WindowContent(Context& ctx)
+        : keyboardComponent(ctx.midiKeyboardState, juce::KeyboardComponentBase::horizontalKeyboard)
+        {
+            addAndMakeVisible(&keyboardComponent);
+            
+            addAndMakeVisible(m_label);
+            m_label.setText("DSP Sketchbook", juce::dontSendNotification);
+            m_label.setJustificationType(juce::Justification::centredRight);
+            m_label.setFont(juce::Font(juce::FontOptions("Futura", 17, juce::Font::FontStyleFlags::plain)));
+            m_label.setColour(juce::Label::ColourIds::textColourId, Style::getInstance()->themeColour);
+        }
+        
+        void resized() override
+        {
+            auto area = getLocalBounds();
+            keyboardComponent.setBounds(area.removeFromTop(area.getHeight() - 150));
+            m_label.setBounds(area.removeFromRight(area.getWidth() / 1.5));
+        }
+        
+        void paint(juce::Graphics& g) override
+        {
+            g.fillAll(Style::getInstance()->backgroundColour);
+        }
+        private:
+        KeyboardComponent keyboardComponent;
+        juce::Label m_label;
+    };
+    
+    KeyboardWindow(Context& ctx)
+    : juce::DocumentWindow("Sketchbook - Keyboard",
+                           Style::getInstance()->backgroundColour,
+                           juce::DocumentWindow::closeButton)
+    , windowContent(ctx)
+    {
+        
+        setContentOwned(&windowContent, true);
+        setResizable (false, false);
+        setUsingNativeTitleBar (true);
+        toFront(true);
+        setVisible(true);
+        setSize(500, 250);
+    }
+    
+    private:
+    WindowContent windowContent;
+};
+
 //==============================================================================
 class ScopeComponent  : public juce::Component,
 private juce::Timer
@@ -63,7 +145,7 @@ private juce::Timer
         
         // Spectrum
         auto scopeRect = area.toFloat();
-        g.setColour({25, 25, 25});
+        g.setColour(Style::getInstance()->backgroundColour);
         g.fillRoundedRectangle(scopeRect, 5);
         
         scopeRect.reduce(10, 10);
@@ -72,13 +154,13 @@ private juce::Timer
                 
             case osc:
             {
-                g.setColour ({65, 65, 65});
+                g.setColour (Style::getInstance()->themeColour);
                 plot (sampleData.data(), sampleData.size(), g, scopeRect, 1.f, scopeRect.getHeight() / 2);
                 break;
             }
                 
             case freq:
-                g.setColour ({65, 65, 65});
+                g.setColour (Style::getInstance()->themeColour);
                 plot (spectrumData.data(), spectrumData.size() / 4, g, scopeRect.reduced(10));
                 break;
                 
@@ -164,8 +246,8 @@ class HeaderComponent : public juce::Component
     HeaderComponent()
     {
         addAndMakeVisible(titleLabel);
-        titleLabel.setFont(juce::FontOptions("Andale Mono", 21, juce::Font::bold));
-        titleLabel.setColour(juce::Label::ColourIds::textColourId, {220, 220, 220});
+        titleLabel.setFont(Style::getInstance()->themeFont.withHeight(24));
+        titleLabel.setColour(juce::Label::ColourIds::textColourId, Style::getInstance()->themeColour);
         titleLabel.setJustificationType(juce::Justification::centred);
         titleLabel.setText("Physical Modeling Sketchbook", juce::dontSendNotification);
     }
@@ -179,43 +261,34 @@ class HeaderComponent : public juce::Component
     juce::Label titleLabel;
 };
 
-class KeyboardComponent : public juce::MidiKeyboardComponent
-{
-    public:
-    KeyboardComponent(juce::MidiKeyboardState& state, Orientation orientation)
-    : MidiKeyboardComponent(state, orientation)
-    {
-        setMidiChannel (1);
-        setAvailableRange(48, 91);
-        setColour(juce::MidiKeyboardComponent::ColourIds::blackNoteColourId, {28, 28, 28});
-        setColour(juce::MidiKeyboardComponent::ColourIds::whiteNoteColourId, {220, 220, 220});
-    }
-    
-    void drawBlackNote(int /*midiNoteNumber*/, juce::Graphics& g, juce::Rectangle<float> area,
-                       bool isDown, bool isOver, juce::Colour noteFillColour) override
-    {
-        juce::Colour colour = isDown ? juce::Colour(35, 35, 35) : juce::Colour(28, 28, 28);
-        g.setColour(colour);
-        g.fillRect(area);
-    }
-    
-    /*
-     void drawWhiteNote(int midiNoteNumber, Graphics& g, Rectangle<float> area,
-     bool isDown, bool isOver, Colour lineColour, Colour textColour) override
-     */
-};
-
 class PageMenu : public juce::Component
 {
     class MenuButton : public juce::TextButton
     {
+        public:
+        
         void paint(juce::Graphics& g) override
         {
             //just draw text
-            g.setColour(getToggleState() ? juce::Colour(220, 220, 220) : juce::Colour(60, 60, 60));
-            g.setFont(juce::Font(juce::FontOptions("Andale Mono", 17, juce::Font::FontStyleFlags::plain)));
+            g.setColour(Style::getInstance()->themeColour);
+            juce::Font font(Style::getInstance()->themeFont.withHeight(fontHeight));
+            
+            if (getToggleState())
+                font.setUnderline(true);
+            
+            g.setFont(font);
             g.drawText(getButtonText(), getLocalBounds(), juce::Justification::centred);
         }
+        
+        int getWidthOfButtonText()
+        {
+            juce::Font font(Style::getInstance()->themeFont.withHeight(fontHeight));
+            juce::GlyphArrangement ga;
+            ga.addLineOfText(font, getButtonText(), 0, 0);
+            return (int)std::ceil(ga.getBoundingBox(0, -1, true).getWidth());
+        }
+        
+        static const int fontHeight = 17;
     };
     
     public:
@@ -228,10 +301,22 @@ class PageMenu : public juce::Component
     
     void resized()
     {
+        //arrange the buttons to have equal spacing between the text, considering the of the text
         auto area = getLocalBounds();
+        int totalTextWidth = 0;
+
+        for (auto& b : buttons)
+            totalTextWidth += b->getWidthOfButtonText();
+        
+        int spacing = (getWidth() - totalTextWidth) / (buttons.size());
+        int x = 0;//spacing / 2;
         
         for (auto& b : buttons)
-            b->setBounds(area.removeFromLeft(getWidth() / buttons.size()));
+        {
+            int w = b->getWidthOfButtonText() + spacing;
+            b->setBounds(x, area.getY(), w, area.getHeight());
+            x += w;
+        }
     }
     
     void addOptions(juce::StringArray options)
@@ -271,16 +356,102 @@ class PageMenu : public juce::Component
     juce::Array<MenuButton*> buttons;
 };
 
+class FooterComponent : public juce::Component
+{
+public:
+    
+    FooterComponent(Context& ctx)
+    : context(ctx)
+    {
+        addAndMakeVisible(m_settingsButton);
+        m_settingsButton.setButtonText("Settings");
+        m_settingsButton.setClickingTogglesState(false);
+        m_settingsButton.onClick = [sp = SafePointer<FooterComponent>(this)] ()
+        {
+            if (auto* w = sp->findParentComponentOfClass <juce::StandaloneFilterWindow>())
+            {
+                w->getPluginHolder()->showAudioSettingsDialog();
+                
+                //set the look and feel
+                auto& desktop = juce::Desktop::getInstance();
+                for (int i = 0; i < desktop.getNumComponents(); ++i)
+                {
+                    auto* comp = desktop.getComponent(i);
+                    
+                    if (auto* dw = dynamic_cast<juce::DialogWindow*>(comp))
+                    {
+                        dw->setLookAndFeel(&sp->getLookAndFeel());
+                        // Also propagate to content component
+                        if (auto* content = dw->getContentComponent())
+                            content->setLookAndFeel(&sp->getLookAndFeel());
+                        break;
+                    }
+                }
+            }
+        };
+        
+        addAndMakeVisible(m_keyboardButton);
+        m_keyboardButton.setButtonText("Keys");
+        m_keyboardButton.setClickingTogglesState(false);
+        m_keyboardButton.onClick = [sp = SafePointer<FooterComponent>(this)] ()
+        {
+            if (!sp) return;
+            
+            if (!sp->context.keyboardWindow)
+                sp->context.keyboardWindow.reset(new KeyboardWindow(sp->context));
+            else
+                sp->context.keyboardWindow.reset();
+                
+            return;
+        };
+        
+        //TODO: setup images for this button
+        addAndMakeVisible(m_oscDisplayButton);
+        m_oscDisplayButton.setButtonText("---");
+        m_oscDisplayButton.setClickingTogglesState(true);
+        m_oscDisplayButton.onClick = [sp = SafePointer<FooterComponent>(this)] ()
+        {
+            //TODO: action
+            return;
+        };
+        
+        addAndMakeVisible(m_label);
+        m_label.setText("DSP Sketchbook", juce::dontSendNotification);
+        m_label.setJustificationType(juce::Justification::centredRight);
+        m_label.setFont(juce::Font(juce::FontOptions("Futura", 17, juce::Font::FontStyleFlags::plain)));
+        m_label.setColour(juce::Label::ColourIds::textColourId, Style::getInstance()->themeColour);
+    }
+    
+    void resized() override
+    {
+        auto area = getLocalBounds();
+        int buttonWidth = area.getWidth() / 6.5;
+        m_settingsButton.setBounds(area.removeFromLeft(buttonWidth));
+        area.removeFromLeft(5);
+        m_keyboardButton.setBounds(area.removeFromLeft(buttonWidth));
+        area.removeFromLeft(5);
+        m_oscDisplayButton.setBounds(area.removeFromLeft(buttonWidth));
+        m_label.setBounds(area.removeFromRight(buttonWidth*3));
+    }
+    
+private:
+    
+    juce::TextButton m_settingsButton;
+    juce::TextButton m_keyboardButton;
+    juce::TextButton m_oscDisplayButton;
+    juce::Label      m_label;
+    sketchbook::Context& context;
+};
+
 class MainPanelComponent : public juce::Component
 {
     public:
     MainPanelComponent(sketchbook::Context& _context)
-    : keyboardComponent(midiKeyboardState, juce::MidiKeyboardComponent::horizontalKeyboard)
-    , scopeComponent(*_context.audioBufferQueue)
+    : scopeComponent(*_context.audioBufferQueue)
     , pages(_context)
+    , footer(_context)
     , context(_context)
     {
-        addAndMakeVisible(keyboardComponent);
         addAndMakeVisible(scopeComponent);
         
         midiKeyboardState.addListener(&context.midiMessageCollector);
@@ -296,10 +467,11 @@ class MainPanelComponent : public juce::Component
             
             sp->pages.showPage(index);
         };
-        pageMenu.addOptions({"PARAMETERS", "MAPPINGS", "MODULATION SOURCES", "EFFECTS"});
+        pageMenu.addOptions({"VOICE", "EFFECTS", "MOD SOURCES", "MATRIX"});
         pageMenu.select(0);
         
         addAndMakeVisible(header);
+        addAndMakeVisible(footer);
     }
     
     ~MainPanelComponent()
@@ -309,37 +481,32 @@ class MainPanelComponent : public juce::Component
     
     void resized()
     {
-        auto area = getLocalBounds();
-        header.setBounds(area.removeFromTop(80));
-        keyboardComponent.setBounds (area.removeFromTop(100).reduced(10, 10));
-        area.removeFromTop(10);
-        scopeComponent.setBounds(area.removeFromTop(140).reduced(10, 20));
-        pageMenu.setBounds(area.removeFromTop(40));
+        //TODO: these areas should be percentages for resizing
+        auto area = getLocalBounds().reduced(35, 0);
+        const int height = area.getHeight();
+        const int width  = area.getWidth();
         
-        pages.setBounds(area.reduced(10, 10));
-        
-        keyboardComponent.setKeyWidth(18);
+        header.setBounds(area.removeFromTop(height * 0.18).reduced(0, height * 0.05));
+        scopeComponent.setBounds(area.removeFromTop(height * 0.1).reduced(width * 0.05, 0));
+        pageMenu.setBounds(area.removeFromTop(height * 0.07));
+        footer.setBounds(area.removeFromBottom(height * 0.05).reduced(0, height * 0.01));
+        pages.setBounds(area);
     }
     
     void paint(juce::Graphics& g)
     {
-        g.fillAll ({25, 25, 25});
-        
-        g.setColour({30, 30, 30});
-        g.fillRoundedRectangle(getLocalBounds().toFloat(), 10);
-        
-        //darker for around the keyboard
-        g.setColour({25, 25, 25});
-        g.fillRect(keyboardComponent.getBoundsInParent().expanded(10, 10));
+        g.fillAll(Style::getInstance()->backgroundColour);
     }
     
     private:
     juce::MidiKeyboardState midiKeyboardState;
-    KeyboardComponent keyboardComponent;
-    ScopeComponent scopeComponent;
-    sketchbook::Pages pages;
-    PageMenu pageMenu;
+    
     HeaderComponent header;
+    ScopeComponent scopeComponent;
+    PageMenu pageMenu;
+    sketchbook::Pages pages;
+    FooterComponent footer;
+    
     sketchbook::Context& context;
 };
 
