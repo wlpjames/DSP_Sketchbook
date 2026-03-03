@@ -24,8 +24,8 @@ public:
         themeFont.setTypefaceName("Inter Medium");
     }
     
-    juce::Colour backgroundColour = {25, 25, 25};
-    juce::Colour themeColour      = juce::Colour::fromRGBA(188, 209, 236, 60);
+    juce::Colour backgroundColour = {22, 22, 22};
+    juce::Colour themeColour      = juce::Colour(juce::uint8(215), juce::uint8(195), juce::uint8(186), 0.4f);
     juce::Colour highlightColour  = juce::Colours::whitesmoke.withAlpha(0.4f);
     juce::Font   themeFont;
     
@@ -59,86 +59,16 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
         setColour(juce::ListBox::textColourId,               Style::getInstance()->themeColour);
         
         setColour(juce::ToggleButton::textColourId,          Style::getInstance()->themeColour);
-        setColour(juce::ToggleButton::tickColourId,               Style::getInstance()->highlightColour);
-        setColour(juce::ToggleButton::tickDisabledColourId,       Style::getInstance()->themeColour);
+        setColour(juce::ToggleButton::tickColourId,          Style::getInstance()->highlightColour);
+        setColour(juce::ToggleButton::tickDisabledColourId,  Style::getInstance()->themeColour);
+        
+        setColour(juce::Slider::backgroundColourId,          juce::Colours::transparentBlack);
     }
     
-    void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height, float sliderPosProportional, float rotaryStartAngle, float rotaryEndAngle, juce::Slider &slider) override
+    juce::Slider::SliderLayout getSliderLayout(juce::Slider& slider) override
     {
-        auto ss = dynamic_cast<StyledSlider*>( &slider);
-        
-        if (!ss)
-        {
-            return;
-        }
-        
-        //ColourPalette::ColourVarient p = ss->getColours();
-        
-        //define squared area to the right of the space
-        auto area = juce::Rectangle<float>(x, y, width, height);
-        auto knobArea = juce::Rectangle<float>(juce::jmin(width, height), juce::jmin(width, height)).withCentre(area.getCentre());
-        
-        //draw large circle in darkest
-        g.setColour(juce::Colours::black);
-        g.fillEllipse(knobArea);
-        
-        auto toAngle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
-        auto trackStartRadians = rotaryStartAngle;
-        auto knobSettingRadians = toAngle;
-        auto middlePosAngle = M_2_PI;
-        
-        bool symmetric = false;
-        if (symmetric)
-        {
-            if (toAngle < middlePosAngle)
-            {
-                // highlight left portion
-                trackStartRadians = knobSettingRadians;
-                knobSettingRadians = middlePosAngle;
-            }
-            else
-            {
-                // highlight right portion
-                trackStartRadians = middlePosAngle;
-            }
-        }
-        
-        auto kaRed = knobArea.reduced(2);
-        
-        //fill segment in light
-        g.setColour( juce::Colours::whitesmoke);
-        
-        juce::Path path;
-        path.addCentredArc(kaRed.getCentreX(), kaRed.getCentreY(), kaRed.getWidth() / 2, kaRed.getHeight() / 2, 0.0, trackStartRadians, knobSettingRadians, true);
-        g.strokePath(path, juce::PathStrokeType(4, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
-        
-        //draw the modulation amount semi transparent above
-        if (ss->shouldDisplayModulation())
-        {
-            float modStartRadians = knobSettingRadians;
-            float modToRadians = juce::jmin(modStartRadians + (rotaryEndAngle - rotaryStartAngle) * ss->getModulatedValue(), rotaryEndAngle);
-            
-            g.setColour(juce::Colours::grey.withAlpha(0.8f));
-            
-            juce::Path modPath;
-            path.addCentredArc(kaRed.getCentreX(), kaRed.getCentreY(), kaRed.getWidth() / 2, kaRed.getHeight() / 2, 0.0, modStartRadians, modToRadians, true);
-            g.strokePath(path, juce::PathStrokeType(4, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
-        }
-        
-        //draw middle in darkest
-        g.setColour(juce::Colours::darkgrey);
-        g.fillEllipse(knobArea.reduced( 3 ));
-        
-        //if mouseOver or isDragging then draw text
-        if (ss->isMouseOverOrDragging())
-        {
-            g.setFont(Style::getInstance()->themeFont.withHeight(10));
-            g.setColour(juce::Colours::black);
-            g.drawText(juce::String::toDecimalStringWithSignificantFigures(ss->getValue(), 2),
-                       knobArea.reduced(5), juce::Justification::centred);
-        }
+        return {slider.getLocalBounds().reduced(2, 0), {}};
     }
-    
     
     void drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height,
                            float sliderPos,
@@ -149,48 +79,38 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
         
         g.fillAll (slider.findColour (juce::Slider::backgroundColourId));
         
-        if (style != juce::Slider::LinearBar)
+        if (style != juce::Slider::LinearHorizontal)
         {
             juce::LookAndFeel_V3::drawLinearSlider(g, x, y, width, height,
                                                    sliderPos, minSliderPos,
                                                    maxSliderPos, style, slider);
-        }
-        
-        auto ss = dynamic_cast<StyledLinearSlider*>(&slider);
-        
-        if (!ss)
-        {
             return;
         }
         
-        const float fx = (float) x, fy = (float) y, fw = (float) width, fh = (float) height;
+        auto ss = dynamic_cast<StyledLinearSlider*>(&slider);
+        if (!ss)
+            return;
         
-        juce::Path p;
-        p.addRectangle(fx, fy, sliderPos - fx, fh);
-        
-        auto baseColour = slider.findColour (juce::Slider::thumbColourId)
-            .withMultipliedSaturation (slider.isEnabled() ? 1.0f : 0.5f)
-            .withMultipliedAlpha (0.8f);
-        
-        g.setGradientFill (juce::ColourGradient::horizontal(baseColour.brighter (0.08f), 0.0f,
-                                                            baseColour.darker (0.4f), (float) height));
-        g.fillPath (p);
-        
-        //draw a thumb?
-        g.setColour (baseColour.darker (0.2f));
-        g.fillRect (sliderPos, fy, 2.5f, fh);
-        
-        drawLinearSliderOutline (g, x, y, width, height, style, slider);
+        //draw track line
+        const int thumbHeight = 6;
+        g.setColour(Style::getInstance()->themeColour);
+        g.drawLine(x, (height / 2) + 0.5f, x + width, (height / 2) + 0.5f, 1.5f);
         
         //draw the modulation amount semi transparent above
         if (ss->shouldDisplayModulation())
         {
+            g.setColour(Style::getInstance()->highlightColour);
             float modValue = ss->getModulatedValue();
             float modulatedSliderPos = width * modValue;
-            g.setColour(baseColour.darker (0.6f));
-            g.fillRect (fx, fy, modulatedSliderPos, fh / 5);
+            if (modulatedSliderPos > sliderPos)
+                g.fillRect (int(sliderPos), height / 2, int(modulatedSliderPos - sliderPos), thumbHeight / 2);
+            else
+                g.fillRect (int(modulatedSliderPos), height / 2, int(sliderPos - modulatedSliderPos), thumbHeight / 2);
         }
         
+        //draw thumb
+        g.setColour(Style::getInstance()->themeColour.withAlpha(.65f));
+        g.drawLine(sliderPos, (height / 2) - (1 + (thumbHeight / 2)), sliderPos, (height / 2) + thumbHeight, 2.f);
     }
     
     //MARK: POPUP Menu (right click)
@@ -246,12 +166,13 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
     {
         auto area = button.getLocalBounds().toFloat();
         g.setColour(button.getToggleState() ? Style::getInstance()->themeColour.brighter() : Style::getInstance()->themeColour);
-        g.drawRoundedRectangle(area.reduced(1.0), area.getHeight() / 2, 1.5);
+        area = area.reduced(1.5);
+        g.drawRoundedRectangle(area, area.getHeight() / 2, 1.f);
     }
     
     juce::Font getTextButtonFont(juce::TextButton&, int buttonHeight) override
     {
-        return Style::getInstance()->themeFont.withHeight(12);
+        return Style::getInstance()->themeFont.withHeight(buttonHeight / 2.5);
     }
     
     void drawComboBox (juce::Graphics& g, int width, int height, bool isButtonDown,
@@ -261,7 +182,7 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
         auto area = comboBox.getLocalBounds().toFloat();
 
         g.setColour(Style::getInstance()->themeColour);
-        g.drawRoundedRectangle(area.reduced(1.0), area.getHeight() / 2, 1.5);
+        g.drawRoundedRectangle(area.reduced(1.5f), 3.5, 1.0f);
         
         juce::Rectangle<int> arrowZone (width - 25, 0, 18, height);
         juce::Path path;
@@ -283,14 +204,36 @@ class AppLookAndFeel : public juce::LookAndFeel_V4
         g.fillAll(juce::Colours::transparentBlack);
     }
     
-    virtual int getCallOutBoxBorderSize (const juce::CallOutBox&) override
+    int getCallOutBoxBorderSize (const juce::CallOutBox&) override
     {
         return 0;
     }
     
-    virtual float getCallOutBoxCornerSize (const juce::CallOutBox&) override
+    float getCallOutBoxCornerSize (const juce::CallOutBox&) override
     {
         return 0;
+    }
+    
+    int getDefaultScrollbarWidth() override
+    {
+        return 5;
+    }
+    
+    void drawScrollbar (juce::Graphics& g, juce::ScrollBar& scrollbar, int x, int y, int width, int height,
+                        bool isScrollbarVertical, int thumbStartPosition, int thumbSize, bool isMouseOver, [[maybe_unused]] bool isMouseDown) override
+    {
+        juce::Rectangle<float> thumbBounds;
+        
+        if (isScrollbarVertical)
+            thumbBounds = juce::Rectangle<int>(x, thumbStartPosition, width, thumbSize).toFloat();
+        else
+            thumbBounds = juce::Rectangle<int>(thumbStartPosition, y, thumbSize, height).toFloat();
+        
+        thumbBounds.reduce(2.75, 0);
+
+        auto c = scrollbar.findColour (juce::ScrollBar::ColourIds::thumbColourId);
+        g.setColour (isMouseOver ? c.brighter (0.25f) : c);
+        g.fillRoundedRectangle (thumbBounds.toFloat(), thumbBounds.getWidth() / 2);
     }
 };
 

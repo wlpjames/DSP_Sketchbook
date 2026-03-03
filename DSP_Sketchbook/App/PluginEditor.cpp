@@ -18,7 +18,7 @@ DSPSketchbookAudioProcessorEditor::DSPSketchbookAudioProcessorEditor (juce::Audi
 , mainPanel(ctx)
 {
     setResizable(true, false);
-    setSize(500, 750);
+    setSize(475, 750);
     setLookAndFeel(&laf);
     addAndMakeVisible(mainPanel);
 }

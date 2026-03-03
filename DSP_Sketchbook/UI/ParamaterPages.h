@@ -33,6 +33,7 @@ class MatrixMenuButton : public juce::TextButton
                 row->setText(str, juce::dontSendNotification);
                 row->setJustificationType(juce::Justification::centred);
                 row->setColour(juce::Label::textColourId, Style::getInstance()->themeColour);
+                row->setFont(Style::getInstance()->themeFont.withHeight(10));
                 rows.add(row);
             }
                 
@@ -82,7 +83,7 @@ class MatrixMenuButton : public juce::TextButton
         }
         
         std::function<void(juce::String)> optionSelected;
-        static const int RowHeight = 20;
+        static const int RowHeight = 18;
         
         private:
         
@@ -143,7 +144,7 @@ class MatrixMenuButton : public juce::TextButton
         
         juce::Rectangle<int> m_initialSize;
         float m_initialCornerRadius;
-        float m_expandedCornerRadius=5;
+        float m_expandedCornerRadius=3.5;
         float m_animProgress01=0;
         juce::Array<juce::Label*> rows;
     };
@@ -172,7 +173,7 @@ class MatrixMenuButton : public juce::TextButton
         
         juce::StringArray output;
         for (auto sourceModule : sources)
-            output.add(sourceModule[Module::ParamIdents::NAME]);
+            output.add(sourceModule[Module::ParamIdents::NAME].toString().replace("_", " "));
         
         return output;
     }
@@ -181,7 +182,7 @@ class MatrixMenuButton : public juce::TextButton
     {
         //add the menu as a popup
         const auto optionsList = getModulationSourceNames();
-        const juce::Rectangle<int> size = {120,
+        const juce::Rectangle<int> size = {100,
                                            MatrixMenuPopup::RowHeight * (optionsList.size() + 1)}; //plus one for spacing top and bottom
         
         auto popup = std::make_unique<MatrixMenuPopup>(optionsList);
@@ -190,7 +191,7 @@ class MatrixMenuButton : public juce::TextButton
         popup->setInitialSize(getLocalBounds(), getHeight() / 2);
         popup->optionSelected = [sp = SafePointer<MatrixMenuButton>(this)] (juce::String selection)
         {
-           sp->data.addChild(Module::ModifiedParameter::defaultMappingTo(selection), -1, nullptr);
+           sp->data.addChild(Module::ModifiedParameter::defaultMappingTo(selection.replace(" ", "_")), -1, nullptr);
         };
         
         auto calloutPos = size.withPosition(getScreenBounds().getRight() - size.getWidth(), getScreenBounds().getY());
@@ -267,12 +268,13 @@ class ExpandableListBox : public juce::Viewport
             {
                 auto area = getLocalBounds();
                 titleLabel.setBounds(area);
-                arrowIcon->setBounds(area.removeFromRight(Height * 1.5).removeFromLeft(Height * 0.7));
+                arrowIcon->setBounds(area.removeFromRight(Height * 0.9f).removeFromLeft(Height * 0.5));
             }
             
             void paint(juce::Graphics& g) override
             {
-                arrowIcon->setTransform(juce::AffineTransform::rotation(arrowAngleRadians, arrowIcon->getWidth() * 0.333, arrowIcon->getHeight() * 0.22));
+                /// experamentaly found pivit point - how should this work?
+                arrowIcon->setTransform(juce::AffineTransform::rotation(arrowAngleRadians, arrowIcon->getWidth() * 0.42f, arrowIcon->getHeight() * 0.2f));
                 arrowIcon->drawWithin(g, arrowIcon->getBounds().toFloat(), juce::RectanglePlacement::centred, 1.0);
             }
             
@@ -291,7 +293,7 @@ class ExpandableListBox : public juce::Viewport
                 return *arrowIcon.get();
             }
             
-            static const int Height = 38;
+            static const int Height = 40;
             
             private:
             
@@ -338,9 +340,7 @@ class ExpandableListBox : public juce::Viewport
         
         void resized() override
         {
-            auto area = getLocalBounds().reduced(12, 0)
-                .withTrimmedTop(currentVerticalPadding)
-                .withTrimmedBottom(minVerticalPadding);
+            auto area = getLocalBounds();
             
             m_header->setBounds(area.removeFromTop(ListItemHolder::Header::Height));
             if (m_content)
@@ -349,7 +349,7 @@ class ExpandableListBox : public juce::Viewport
         
         int getCurrentHeight()
         {
-            return Header::Height + currentContentHeight + currentVerticalPadding + minVerticalPadding;
+            return Header::Height + currentContentHeight;
         }
         
         void mouseUp(const juce::MouseEvent& event) override
@@ -366,7 +366,7 @@ class ExpandableListBox : public juce::Viewport
         void paint(juce::Graphics& g) override
         {
             g.setColour(Style::getInstance()->themeColour);
-            g.drawRoundedRectangle(getLocalBounds().withTrimmedTop(currentVerticalPadding).toFloat().reduced(1.5f), 2.5, 1.f);
+            g.drawRoundedRectangle(getLocalBounds().toFloat().reduced(1.5f), 3.5, 1.f);
         }
         
         std::function<void()> onSizeChange;
@@ -375,10 +375,6 @@ class ExpandableListBox : public juce::Viewport
         
         bool isOpen = false;
         int currentContentHeight = 0;
-        
-        const float maxVerticalPadding = 10.0f;
-        const float minVerticalPadding = 4.0f;
-        float currentVerticalPadding = minVerticalPadding;
         
         std::unique_ptr<Header> m_header;
         ExpandableListItem* m_content = nullptr;
@@ -392,7 +388,6 @@ class ExpandableListBox : public juce::Viewport
                                        {
                 float multiple = isOpen ? 1.0f - value : value;
                 currentContentHeight = m_content->getFullHeight() * multiple;
-                currentVerticalPadding = juce::jmap(multiple, 0.0f, 1.0f, minVerticalPadding, maxVerticalPadding);
                 
                 if (onSizeChange)
                     onSizeChange();
@@ -429,7 +424,10 @@ class ExpandableListBox : public juce::Viewport
         {
             auto area = getLocalBounds();
             for (auto item : m_items)
+            {
                 item->setBounds(area.removeFromTop(item->getCurrentHeight()));
+                area.removeFromTop(padding);
+            }
         }
         
         
@@ -449,12 +447,13 @@ class ExpandableListBox : public juce::Viewport
         {
             int h = 0;
             for (auto& item : m_items)
-                h += item->getCurrentHeight();
+                h += item->getCurrentHeight() + padding;
             
             return h;
         }
         
         juce::Array<ListItemHolder*> m_items;
+        const int padding = 6;
     };
     
     ExpandableListBox()
@@ -462,7 +461,8 @@ class ExpandableListBox : public juce::Viewport
         setViewedComponent(&listHolder);
         addAndMakeVisible(&listHolder);
         setScrollBarsShown(true, false);
-        getVerticalScrollBar().setAutoHide(false);
+        getVerticalScrollBar().setAutoHide(true);
+        setScrollBarThickness(7);
     }
     
     void addItem(ExpandableListItem* item, juce::String headerText, std::unique_ptr<ExpandableListBox::ListItemHolder::Header> headerComp = nullptr)
@@ -489,9 +489,10 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         {
             addAndMakeVisible   (parameterTitleLabel);
             parameterTitleLabel.setJustificationType(juce::Justification::centredLeft);
-            parameterTitleLabel.setFont(Style::getInstance()->themeFont.withHeight(14));
+            parameterTitleLabel.setFont(Style::getInstance()->themeFont.withHeight(12));
             parameterTitleLabel.setColour(juce::Label::ColourIds::textColourId, Style::getInstance()->themeColour);
             
+            addChildComponent(sliderLabel);
             addChildComponent(slider);
             addChildComponent(integerStepper);
             addChildComponent(toggleButton);
@@ -526,7 +527,10 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
                     slider.onValueChange = [this]
                     {
                         data.setPropertyExcludingListener(this, Module::ParamIdents::VALUE, slider.getValue(), nullptr);
+                        sliderLabel.setText(juce::String(std::round(slider.getValue() * 1000) / 1000), juce::dontSendNotification);
                     };
+                    sliderLabel.setJustificationType(juce::Justification::centred);
+                    sliderLabel.setFont(Style::getInstance()->themeFont.withHeight(10));
                     break;
                 }
                 case Module::parameterType::intParam:
@@ -572,11 +576,6 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
             addModButton.setData(data);
         }
         
-        void paint (juce::Graphics& g) override
-        {
-            
-        }
-        
         void valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged, const juce::Identifier& property) override
         {
             if (property != Module::ParamIdents::VALUE) return;
@@ -610,24 +609,30 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         
         void resized() override
         {
-            auto area = getLocalBounds();
-            int w = getWidth() / 4;
+            auto area = getLocalBounds().reduced(int(getWidth() * 0.03f), 0);
+            int w = area.getWidth() / 3;
             parameterTitleLabel.setBounds (area.removeFromLeft (w).reduced(3));
             
             if (addModButton.isVisible())
             {
-                addModButton.setBounds(area.removeFromRight(w).reduced(3));
+                addModButton.setBounds(area.removeFromRight(int(getWidth() * 0.11)).reduced(0, getHeight() * 0.25));
             }
             
-            slider              .setBounds(juce::Rectangle<int>(area).removeFromRight(w).reduced(0, 3));
-            integerStepper      .setBounds(juce::Rectangle<int>(area).removeFromRight(w).reduced(0, 3));
-            toggleButton        .setBounds(juce::Rectangle<int>(area).removeFromRight(w).reduced(0, 3));
-            comboOptions        .setBounds(juce::Rectangle<int>(area).removeFromRight(w).reduced(0, 3));
+            //centred slider
+            const auto sliderRect       = juce::Rectangle<int>(getWidth() / 4, getHeight());
+            const auto sliderLabelRect  = juce::Rectangle<int>(int(getWidth() * 0.11), getHeight());
+            slider         .setBounds(sliderRect.withCentre(getLocalBounds().getCentre()));
+            sliderLabel    .setBounds(sliderLabelRect.withX(slider.getRight()));
+            
+            //other widgets to the right
+            integerStepper .setBounds(juce::Rectangle<int>(area).removeFromRight(w / 1.5).reduced(0, getHeight() * 0.24));
+            toggleButton   .setBounds(juce::Rectangle<int>(area).removeFromRight(w / 1.5).reduced(0, getHeight() * 0.24));
+            comboOptions   .setBounds(juce::Rectangle<int>(area).removeFromRight(w / 1.5).reduced(0, getHeight() * 0.24));
         }
         
         static const int getRowHeight()
         {
-            return 35;
+            return 48;
         }
         
         private:
@@ -661,6 +666,7 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
             auto type = getParamType(data);
             addModButton     .setVisible(type == Module::parameterType::floatParam);
             slider           .setVisible(type == Module::parameterType::floatParam);
+            sliderLabel      .setVisible(type == Module::parameterType::floatParam);
             integerStepper   .setVisible(type == Module::parameterType::intParam);
             toggleButton     .setVisible(type == Module::parameterType::booleanParam);
             comboOptions     .setVisible(type == Module::parameterType::choiceParam);
@@ -668,6 +674,7 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         
         juce::Label parameterTitleLabel;
         
+        juce::Label         sliderLabel;
         StyledLinearSlider  slider;
         juce::Slider        integerStepper;
         OnOffButton         toggleButton;
@@ -696,7 +703,7 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         void resized() override
         {
             ExpandableListBox::ListItemHolder::Header::resized();
-            onOffButton.setBounds(getLocalBounds().removeFromLeft(int(Height * 1.5f)));
+            onOffButton.setBounds(getLocalBounds().removeFromLeft(int(Height * 1.4f)).reduced(6, 8));
         }
         
         void setData (juce::ValueTree _data)
@@ -759,7 +766,7 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
             auto area = getLocalBounds();
             for (auto row : rows)
             {
-                row->setBounds(area.removeFromTop(35));
+                row->setBounds(area.removeFromTop(ParameterRow::getRowHeight()));
             }
         }
         

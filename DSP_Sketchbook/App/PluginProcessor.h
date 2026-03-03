@@ -12,6 +12,10 @@
 #include "../UI/LookAndFeel.h"
 #include "PluginEditor.h"
 
+#if JUCE_WINDOWS
+#include "dwmapi.h"
+#endif
+
 //==============================================================================
 /**
 */
@@ -44,6 +48,8 @@ public:
         {
             return audioEngine.getLatestPlayingModuleByName(name);
         };
+        
+        context.midiKeyboardState.addListener(&context.midiMessageCollector);
     }
 
     ~DSPSketchbookAudioProcessor()
@@ -175,7 +181,24 @@ public:
 
     juce::AudioProcessorEditor* createEditor()
     {
-        return new DSPSketchbookAudioProcessorEditor(*this, context, lookAndFeel);
+        auto editor = new DSPSketchbookAudioProcessorEditor(*this, context, lookAndFeel);
+        if(wrapperType == wrapperType_Standalone)
+        {
+            for (int i = 0; i < juce::TopLevelWindow::getNumTopLevelWindows(); i++)
+            {
+                auto* w = juce::TopLevelWindow::getTopLevelWindow(i);
+                w->setUsingNativeTitleBar(true);
+                
+#if JUCE_WINDOWS
+            //title bar colour change from https://forum.juce.com/t/nativetitlebar-color-change/53608/2
+            auto hwnd = w->getPeer()->getNativeHandle();
+            BOOL USE_DARK_MODE = true;
+            auto result = DwmSetWindowAttribute((HWND)hwnd, DWMWINDOWATTRIBUTE::DWMWA_USE_IMMERSIVE_DARK_MODE, &USE_DARK_MODE, sizeof(USE_DARK_MODE));
+#endif
+            }
+        }
+        
+        return editor;
     }
 
     //==============================================================================

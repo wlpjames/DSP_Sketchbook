@@ -15,6 +15,8 @@
 namespace sketchbook
 {
 
+class MainPanelComponent;
+
 class KeyboardWindow : public juce::DocumentWindow
 {
     public:
@@ -26,7 +28,6 @@ class KeyboardWindow : public juce::DocumentWindow
         : MidiKeyboardComponent(state, orientation)
         {
             setMidiChannel (1);
-            setAvailableRange(48, 91);
             setColour(juce::MidiKeyboardComponent::ColourIds::blackNoteColourId, {28, 28, 28});
             setColour(juce::MidiKeyboardComponent::ColourIds::whiteNoteColourId, {220, 220, 220});
         }
@@ -63,14 +64,15 @@ class KeyboardWindow : public juce::DocumentWindow
         void resized() override
         {
             auto area = getLocalBounds();
-            keyboardComponent.setBounds(area.removeFromTop(area.getHeight() - 150));
-            m_label.setBounds(area.removeFromRight(area.getWidth() / 1.5));
+            keyboardComponent.setBounds(area.removeFromTop(area.getHeight() * 0.8).reduced(10, 25));
+            m_label.setBounds(area.reduced(10, 0).removeFromRight(area.getWidth() / 1.5));
         }
         
         void paint(juce::Graphics& g) override
         {
             g.fillAll(Style::getInstance()->backgroundColour);
         }
+        
         private:
         KeyboardComponent keyboardComponent;
         juce::Label m_label;
@@ -88,7 +90,7 @@ class KeyboardWindow : public juce::DocumentWindow
         setUsingNativeTitleBar (true);
         toFront(true);
         setVisible(true);
-        setSize(500, 250);
+        setSize(500, 175);
     }
     
     private:
@@ -113,17 +115,6 @@ private juce::Timer
     {
         sampleData.fill (0.f);
         setFramesPerSecond (30);
-        
-        addAndMakeVisible(scopeSwitchButton);
-        scopeSwitchButton.setButtonText("Toggle");
-        scopeSwitchButton.setClickingTogglesState(true);
-        scopeSwitchButton.onClick = [sp = SafePointer<ScopeComponent>(this)] ()
-        {
-            if (!sp) return;
-            
-            sp->showScope(sp->scopeSwitchButton.getToggleState() ? scopeToShow::osc : scopeToShow::freq);
-        };
-        
         showScope(freq);
         
         //init spectrumData to 1.f
@@ -174,13 +165,6 @@ private juce::Timer
         currScope = scope;
     }
     
-    //==============================================================================
-    void resized() override
-    {
-        auto area = getLocalBounds().reduced(5);
-        scopeSwitchButton.setBounds(juce::Rectangle<int>(60, 24).withRightX(area.getRight()).withY(area.getY()));
-    }
-    
     private:
     
     //==============================================================================
@@ -229,7 +213,6 @@ private juce::Timer
     private:
     //==============================================================================
     scopeToShow currScope = osc;
-    juce::TextButton scopeSwitchButton;
     
     Queue& audioBufferQueue;
     std::array<float, Queue::bufferSize> sampleData;
@@ -246,7 +229,7 @@ class HeaderComponent : public juce::Component
     HeaderComponent()
     {
         addAndMakeVisible(titleLabel);
-        titleLabel.setFont(Style::getInstance()->themeFont.withHeight(24));
+        titleLabel.setFont(Style::getInstance()->themeFont.withHeight(26));
         titleLabel.setColour(juce::Label::ColourIds::textColourId, Style::getInstance()->themeColour);
         titleLabel.setJustificationType(juce::Justification::centred);
         titleLabel.setText("Physical Modeling Sketchbook", juce::dontSendNotification);
@@ -277,7 +260,7 @@ class PageMenu : public juce::Component
                 font.setUnderline(true);
             
             g.setFont(font);
-            g.drawText(getButtonText(), getLocalBounds(), juce::Justification::centred);
+            g.drawText(getButtonText(), getLocalBounds(), juce::Justification::centredBottom);
         }
         
         int getWidthOfButtonText()
@@ -288,7 +271,7 @@ class PageMenu : public juce::Component
             return (int)std::ceil(ga.getBoundingBox(0, -1, true).getWidth());
         }
         
-        static const int fontHeight = 17;
+        static const int fontHeight = 14;
     };
     
     public:
@@ -360,8 +343,9 @@ class FooterComponent : public juce::Component
 {
 public:
     
-    FooterComponent(Context& ctx)
+    FooterComponent(Context& ctx, ScopeComponent* scopeComp)
     : context(ctx)
+    , m_oscDisplayButton("Scope Toggle", juce::DrawableButton::ButtonStyle::ImageFitted)
     {
         addAndMakeVisible(m_settingsButton);
         m_settingsButton.setButtonText("Settings");
@@ -407,13 +391,29 @@ public:
         
         //TODO: setup images for this button
         addAndMakeVisible(m_oscDisplayButton);
-        m_oscDisplayButton.setButtonText("---");
+        m_oscDisplayButton.setButtonStyle(juce::DrawableButton::ImageOnButtonBackground);
         m_oscDisplayButton.setClickingTogglesState(true);
-        m_oscDisplayButton.onClick = [sp = SafePointer<FooterComponent>(this)] ()
+        m_oscDisplayButton.setToggleState(true, juce::dontSendNotification);
+        m_oscDisplayButton.onClick = [sp = SafePointer<FooterComponent>(this), scopeComp] ()
         {
-            //TODO: action
-            return;
+            if (!sp) return;
+            scopeComp->showScope(sp->m_oscDisplayButton.getToggleState()
+                                        ? ScopeComponent::scopeToShow::freq
+                                        : ScopeComponent::scopeToShow::osc);
         };
+        
+        m_toggleImageOn = juce::Drawable::createFromImageData(DSP_SKETCHBOOK_BINARY::Scope_Toggle_On_svg,
+                                                               DSP_SKETCHBOOK_BINARY::Scope_Toggle_On_svgSize);
+        m_toggleImageOff = juce::Drawable::createFromImageData(DSP_SKETCHBOOK_BINARY::Scope_Toggle_Off_svg,
+                                                               DSP_SKETCHBOOK_BINARY::Scope_Toggle_Off_svgSize);
+        m_oscDisplayButton.setImages(m_toggleImageOff.get(),
+                                     nullptr,
+                                     nullptr,
+                                     nullptr,
+                                     m_toggleImageOn.get());
+        
+        
+        
         
         addAndMakeVisible(m_label);
         m_label.setText("DSP Sketchbook", juce::dontSendNotification);
@@ -436,11 +436,13 @@ public:
     
 private:
     
-    juce::TextButton m_settingsButton;
-    juce::TextButton m_keyboardButton;
-    juce::TextButton m_oscDisplayButton;
-    juce::Label      m_label;
+    juce::TextButton     m_settingsButton;
+    juce::TextButton     m_keyboardButton;
+    juce::DrawableButton m_oscDisplayButton;
+    juce::Label          m_label;
     sketchbook::Context& context;
+    std::unique_ptr<juce::Drawable> m_toggleImageOn;
+    std::unique_ptr<juce::Drawable> m_toggleImageOff;
 };
 
 class MainPanelComponent : public juce::Component
@@ -449,7 +451,7 @@ class MainPanelComponent : public juce::Component
     MainPanelComponent(sketchbook::Context& _context)
     : scopeComponent(*_context.audioBufferQueue)
     , pages(_context)
-    , footer(_context)
+    , footer(_context, &scopeComponent)
     , context(_context)
     {
         addAndMakeVisible(scopeComponent);
@@ -482,14 +484,17 @@ class MainPanelComponent : public juce::Component
     void resized()
     {
         //TODO: these areas should be percentages for resizing
-        auto area = getLocalBounds().reduced(35, 0);
-        const int height = area.getHeight();
-        const int width  = area.getWidth();
+        
+        const int height = getHeight();
+        const int width  = getWidth();
+        auto area = getLocalBounds().reduced(width * 0.04, 0);
         
         header.setBounds(area.removeFromTop(height * 0.18).reduced(0, height * 0.05));
         scopeComponent.setBounds(area.removeFromTop(height * 0.1).reduced(width * 0.05, 0));
-        pageMenu.setBounds(area.removeFromTop(height * 0.07));
-        footer.setBounds(area.removeFromBottom(height * 0.05).reduced(0, height * 0.01));
+        area.removeFromTop(height * 0.05);
+        pageMenu.setBounds(area.removeFromTop(height * 0.045));
+        area.removeFromTop(height * 0.02);
+        footer.setBounds(area.removeFromBottom(height * 0.057).reduced(0, height * 0.011));
         pages.setBounds(area);
     }
     

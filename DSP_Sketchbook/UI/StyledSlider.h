@@ -85,8 +85,8 @@ class StyledLinearSlider : public juce::Slider, public ModableWidget
     StyledLinearSlider(Context& _ctx)
     : ModableWidget(this, _ctx)
     {
-        setSliderStyle(SliderStyle::LinearBar);
-        setTextBoxStyle(TextBoxRight, false, 35, 30);
+        setSliderStyle(SliderStyle::LinearHorizontal);
+        setTextBoxStyle(NoTextBox, false, 0, 0);
     }
     
     ~StyledLinearSlider() override
