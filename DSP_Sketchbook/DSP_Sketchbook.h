@@ -69,6 +69,7 @@ struct Context
 #include "Modules/FX.h"
 #include "Modules/ModulationSources.h"
 #include "Modules/SimpleOsc.h"
+#include "Modules/Sampler.hpp"
 
 //APP
 #include "App/AppDecl.h"

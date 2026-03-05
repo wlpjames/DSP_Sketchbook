@@ -357,6 +357,14 @@ class Voice : public juce::ValueTree::Listener
         return arr;
     }
     
+    void forEachModule(std::function<void(Module& mod)> fnc)
+    {
+        moduleList.forEach([&] (auto& mod, auto)
+        {
+            fnc(mod);
+        });
+    }
+    
     private:
     
     void valueTreePropertyChanged(juce::ValueTree &tree, const juce::Identifier &property)

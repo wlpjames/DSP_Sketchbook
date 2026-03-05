@@ -26,6 +26,7 @@ const Identifier Module::ParamIdents::PARAMETER_FLOAT       = Identifier("PARAME
 const Identifier Module::ParamIdents::PARAMETER_INTEGER     = Identifier("PARAMETER_INTEGER");
 const Identifier Module::ParamIdents::PARAMETER_BOOL        = Identifier("PARAMETER_BOOL");
 const Identifier Module::ParamIdents::PARAMETER_CHOICE      = Identifier("PARAMETER_CHOICE");
+const Identifier Module::ParamIdents::PARAMETER_FILE        = Identifier("PARAMETER_FILE");
 const Identifier Module::ParamIdents::PARAMETER_NAME        = Identifier("NAME");
 const Identifier Module::ParamIdents::VALUE                 = Identifier("VALUE");
 const Identifier Module::ParamIdents::IS_MODABLE            = Identifier("IS_MODABLE");
@@ -99,6 +100,7 @@ AudioBuffer<float> RingBuffer::getBuffer()
     return b;
 }
 
+//float param
 Module::ParameterInternal::ParameterInternal(juce::String name, std::function<void(float)> callback, float _initialValue, float _min, float _max)
 : parameterValue(_initialValue)
 , paramName(name)
@@ -120,6 +122,7 @@ Module::ParameterInternal::ParameterInternal(juce::String name, std::function<vo
     paramChangedCallback(getValue());
 }
 
+//integer param
 Module::ParameterInternal::ParameterInternal(String name, std::function<void(int)> callback, int initialValue, int _min, int _max)
 : parameterValue(initialValue)
 , paramName(name)
@@ -178,6 +181,22 @@ Module::ParameterInternal::ParameterInternal(String name, std::function<void(juc
     paramChangedCallback(getValue());
 }
 
+//file Parameter
+Module::ParameterInternal::ParameterInternal(juce::String name, std::function<void(juce::String)> callback, String initialValue)
+: parameterValue(initialValue)
+, paramName(name)
+, paramChangedCallback(callback)
+{
+    data = ValueTree(ParamIdents::PARAMETER_FILE)
+        .setProperty(ParamIdents::PARAMETER_NAME, name, nullptr)
+        .setProperty(ParamIdents::VALUE, initialValue, nullptr);
+    
+    if (data.isValid())
+        data.addListener(this);
+    
+    setValue(data[Module::ParamIdents::VALUE]);
+    paramChangedCallback(getValue());
+}
 
 Module::ParameterInternal::~ParameterInternal()
 {
@@ -353,7 +372,6 @@ inline Identifier Module::ModifiedParameter::getParamName()
     return parameterName;
 }
 
-
 Module::Module()
 {
     internalBuffer.setSize(UIBufferSize);
@@ -515,6 +533,14 @@ void Module::setModuleParameters(Array< std::shared_ptr< Module::ParameterIntern
     }
 }
 
+/*
+ This can be used to set shared data across instaces in the same voice
+*/
+void Module::setSharedData(std::shared_ptr<SharedData> sharedDataObject)
+{
+    m_sharedData = sharedDataObject;
+}
+
 void Module::applyAllParameters()
 {
     for (auto p : moduleParameters)
@@ -567,3 +593,4 @@ void Module::setModuleState(ValueTree newModuleState)
 }
 
 } //end namespace sketchbook
+

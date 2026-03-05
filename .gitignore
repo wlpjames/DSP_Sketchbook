@@ -12,3 +12,5 @@ Templates/.DS_Store
 Templates/CMake Template/build/
 
 Templates/Projucer Template/JuceLibraryCode/
+
+Templates/Projucer Template/Builds/

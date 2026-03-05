@@ -50,6 +50,8 @@ class Module : public juce::ValueTree::Listener
 {
     public:
     
+    class SharedData {};
+    
     enum VoiceMonitorType
     {
         adsr, silenceDetection
@@ -78,10 +80,10 @@ class Module : public juce::ValueTree::Listener
         
         //choice parameter
         ParameterInternal(juce::String name, std::function<void(juce::String)> callback, juce::StringArray options, juce::String initialValue);
-        /*
-         //file Parameter
-         Parameter(String name, std::function<void(juce::File)> callback, File fileBrowserFolderToOpenTo);
-         */
+        
+        //file Parameter
+        ParameterInternal(juce::String name, std::function<void(juce::String)> callback, juce::String initialValue);
+        
         ~ParameterInternal() override;
         
         void setValue(juce::var value);
@@ -110,7 +112,7 @@ class Module : public juce::ValueTree::Listener
     
     enum class parameterType
     {
-        floatParam = 0, intParam, booleanParam, choiceParam, numParameterTypes
+        floatParam = 0, intParam, booleanParam, choiceParam, fileParam, numParameterTypes
     };
     
     struct Parameter
@@ -133,6 +135,11 @@ class Module : public juce::ValueTree::Listener
         static std::shared_ptr<ParameterInternal> Choice(juce::String name, std::function<void(juce::String)> callback, juce::StringArray options, juce::String initialValue)
         {
             return std::make_shared<ParameterInternal>(name, callback, options, initialValue);
+        }
+        
+        static std::shared_ptr<ParameterInternal> File(juce::String name, std::function<void(juce::String)> callback, juce::String initialValue)
+        {
+            return std::make_shared<ParameterInternal>(name, callback, initialValue);
         }
     };
     
@@ -284,6 +291,7 @@ class Module : public juce::ValueTree::Listener
         static const juce::Identifier PARAMETER_INTEGER;
         static const juce::Identifier PARAMETER_BOOL;
         static const juce::Identifier PARAMETER_CHOICE;
+        static const juce::Identifier PARAMETER_FILE;
         
         //MODULATIONS
         static const juce::Identifier MODULATION;
@@ -307,6 +315,21 @@ class Module : public juce::ValueTree::Listener
     
     void setModuleParameters(juce::Array<std::shared_ptr<Module::ParameterInternal>> parameters);
     
+    /*
+     This can be used to set shared data across instaces in the same voice
+    */
+    void setSharedData(std::shared_ptr<SharedData> sharedDataObject);
+    
+    /*
+     returns an instance of the shared data that is used across voices for this module
+    */
+    template<typename SharedDataType>
+    std::shared_ptr<SharedDataType> getSharedData()
+    {
+        static_assert(std::is_base_of<Module::SharedData, SharedDataType>(), "SharedDataType muse be derived from Module::SharedData");
+        return std::static_pointer_cast<SharedDataType>(m_sharedData);
+    }
+    
     void applyAllParameters();
     
     void setModulationSources(juce::Array<Module*> modSources);
@@ -327,6 +350,7 @@ class Module : public juce::ValueTree::Listener
     VoiceMonitorType voiceMonitorType = adsr;
     int instanceId = -1; ///If there are more that one instances of a module, this number will be appened to the name - else will be -1
     bool isDefaultEnabled = true;
+    std::shared_ptr<SharedData> m_sharedData;
 };
 
 //==============================================================================

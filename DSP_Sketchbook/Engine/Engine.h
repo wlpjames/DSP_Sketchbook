@@ -42,6 +42,30 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
 {
     public:
     
+    struct ModuleSharedData
+    {
+        struct Entry
+        {
+            juce::String moduleName;
+            std::shared_ptr<Module::SharedData> data;
+        };
+        juce::Array<Entry> entries;
+        
+        void addEntry(juce::String moduleName, std::shared_ptr<Module::SharedData> data)
+        {
+            entries.add({moduleName, data});
+        }
+        
+        std::shared_ptr<Module::SharedData> getData(juce::String moduleName)
+        {
+            for (auto& entry : entries)
+                if (entry.moduleName == moduleName)
+                    return entry.data;
+                
+            return nullptr;
+        }
+    };
+    
     //==============================================================================
     AudioEngine()
     {
@@ -64,15 +88,17 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
         VoiceModules tmpVoiceModules;
         ModulationSources tmpModSources;
         setInstanceIdsForAll(tmpVoiceModules, tmpModSources, fxChain);
+        ModuleSharedData moduleSharedData;
         
-        tmpVoiceModules.forEach([&] (auto& mod, auto)
-                                {
+        tmpVoiceModules.forEach([&] (Module& mod, auto)
+        {
             pluginData.getChildWithName(Module::ParamIdents::MODULES).addChild(mod.getModuleState(), -1, nullptr);
+            moduleSharedData.addEntry(mod.getName(), mod.getSharedData<Module::SharedData>());
         });
         
         //do the same for modulation sources
-        tmpModSources.forEach([&] (auto& mod, auto)
-                              {
+        tmpModSources.forEach([&] (Module& mod, auto)
+        {
             pluginData.getChildWithName(Module::ParamIdents::MODULATION_SOURCES).addChild(mod.getModuleState(), -1, nullptr);
         });
         
@@ -80,15 +106,19 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
         for (int i = 0; i < sketchbook::VoiceController<VoiceModules, ModulationSources>::getNumVoices(); i++)
         {
             if (auto v = sketchbook::VoiceController<VoiceModules, ModulationSources>::getVoice(i))
+            {
                 v->setData(pluginData);
+                v->forEachModule([&] (Module& mod)
+                {
+                    mod.setSharedData(moduleSharedData.getData(mod.getName()));
+                });
+            }
         }
         
         //setup fx parameter
         fxChain.forEach([&] (auto& mod, auto) {
             pluginData.getChildWithName(Module::ParamIdents::EFFECT_FILTERS).addChild(mod.getModuleState(), -1, nullptr);
         });
-        
-        //DBG(pluginData.toXmlString());
     }
     
     virtual ~AudioEngine()

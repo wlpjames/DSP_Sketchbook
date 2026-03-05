@@ -100,7 +100,7 @@ private:
     float m_gain = 0;
 };
 
-using voiceModules = sketchbook::ModuleList<CustomModule, sketchbook::SimpleOsc>;
+using voiceModules = sketchbook::ModuleList</*CustomModule, */sketchbook::Sampler/*, sketchbook::SimpleOsc*/>;
 using postProscessEffects = sketchbook::ModuleList<sketchbook::Reverb, sketchbook::Delay>;
 using mosulationSources = sketchbook::ModuleList<>;
 

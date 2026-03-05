@@ -33,6 +33,7 @@
 #include "Modules/Delay.cpp"
 
 #include "Modules/Reverb.cpp"
+#include "Modules/Sampler.cpp"
 #include "Modules/DragonFlyReverb/DSP.cpp"
 
 #include "Modules/DragonFlyReverb/freeverb/allpass.cpp"

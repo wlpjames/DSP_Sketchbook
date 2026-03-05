@@ -498,6 +498,8 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
             addChildComponent(toggleButton);
             addChildComponent(comboOptions);
             addAndMakeVisible(addModButton);
+            addChildComponent(browserButton);
+            addChildComponent(selectedFileLabel);
         }
         
         ~ParameterRow() override
@@ -566,6 +568,34 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
                     };
                     break;
                 }
+                case Module::parameterType::fileParam:
+                {
+                    selectedFileLabel.setJustificationType(juce::Justification::centred);
+                    selectedFileLabel.setText(data[Module::ParamIdents::VALUE], juce::dontSendNotification);
+                    browserButton.setButtonText("Open File");
+                    browserButton.setClickingTogglesState(false);
+                    browserButton.onClick = [this] ()
+                    {
+                        //allow user to choose file
+                        fileChooser = std::make_unique<juce::FileChooser>("Open File", juce::File::getSpecialLocation(juce::File::userDocumentsDirectory));
+                        
+                        auto folderChooserFlags = juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::openMode;
+                        fileChooser->launchAsync (folderChooserFlags, [sp = SafePointer<ParameterRow>(this)] (const juce::FileChooser& chooser)
+                        {
+                            if (!sp) return;
+                            
+                            //get result and check extention
+                            juce::File path = chooser.getResult();
+                            
+                            if (path == juce::File())
+                                return;
+                            
+                            sp->selectedFileLabel.setText(path.getFileName(), juce::dontSendNotification);
+                            sp->data.setPropertyExcludingListener(sp.getComponent(), Module::ParamIdents::VALUE, path.getFullPathName(), nullptr);
+                        });
+                    };
+                    
+                }
                 case Module::parameterType::numParameterTypes:
                 default: break;
             };
@@ -628,6 +658,10 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
             integerStepper .setBounds(juce::Rectangle<int>(area).removeFromRight(w / 1.5).reduced(0, getHeight() * 0.24));
             toggleButton   .setBounds(juce::Rectangle<int>(area).removeFromRight(w / 1.5).reduced(0, getHeight() * 0.24));
             comboOptions   .setBounds(juce::Rectangle<int>(area).removeFromRight(w / 1.5).reduced(0, getHeight() * 0.24));
+            
+            //file component
+            browserButton    .setBounds(area.removeFromRight(w / 1.5).reduced(0, getHeight() * 0.24));
+            selectedFileLabel.setBounds(area);
         }
         
         static const int getRowHeight()
@@ -655,6 +689,10 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
             {
                 return Module::parameterType::choiceParam;
             }
+            else if (parameterData.getType() == Module::ParamIdents::PARAMETER_FILE)
+            {
+                return Module::parameterType::fileParam;
+            }
             
             //default to floating point (but throw assert here anyway)
             jassertfalse;
@@ -670,6 +708,8 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
             integerStepper   .setVisible(type == Module::parameterType::intParam);
             toggleButton     .setVisible(type == Module::parameterType::booleanParam);
             comboOptions     .setVisible(type == Module::parameterType::choiceParam);
+            browserButton    .setVisible(type == Module::parameterType::fileParam);
+            selectedFileLabel.setVisible(type == Module::parameterType::fileParam);
         }
         
         juce::Label parameterTitleLabel;
@@ -679,6 +719,9 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         juce::Slider        integerStepper;
         OnOffButton         toggleButton;
         juce::ComboBox      comboOptions;
+        juce::Label         selectedFileLabel;
+        juce::TextButton    browserButton;
+        std::unique_ptr<juce::FileChooser> fileChooser;
         
         MatrixMenuButton addModButton;
         juce::ValueTree data;
