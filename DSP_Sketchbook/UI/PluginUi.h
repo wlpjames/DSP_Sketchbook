@@ -170,21 +170,48 @@ private juce::Timer
     //==============================================================================
     void timerCallback() override
     {
+        /// the code bellow prived by claude.ai
         audioBufferQueue.pop (sampleData.data());
         juce::FloatVectorOperations::copy (spectrumData.data(), sampleData.data(), (int) sampleData.size());
-        
+
         auto fftSize = (size_t) fft.getSize();
-        
+
         jassert (spectrumData.size() == 2 * fftSize);
         windowFun.multiplyWithWindowingTable (spectrumData.data(), fftSize);
-        fft.performFrequencyOnlyForwardTransform (spectrumData.data());
-        
+        fft.performFrequencyOnlyForwardTransform (spectrumData.data(), true);
+
         static constexpr auto mindB = -160.f;
         static constexpr auto maxdB = 0.f;
-        
+
         for (auto& s : spectrumData)
             s = juce::jmap (juce::jlimit (mindB, maxdB, juce::Decibels::gainToDecibels (s) - juce::Decibels::gainToDecibels (float(fftSize))), mindB, maxdB, 0.f, 1.f);
-        
+
+        // --- Remap linear bins into log-scaled output in-place ---
+        static constexpr float minFreq = 1.f;
+        static constexpr float maxFreq = 20000.f;
+        auto numBins = fftSize / 2 + 1;
+        auto numOutputBins = numBins; // same size, remapped
+        float sampleRate = 44100;
+
+        std::vector<float> logMapped (numOutputBins);
+
+        for (size_t i = 0; i < numOutputBins; ++i)
+        {
+            float normX = (float) i / (float) (numOutputBins - 1);
+            float freq  = minFreq * std::pow (maxFreq / minFreq, normX);
+            float binF  = freq / sampleRate * (float) fftSize;
+            
+            int   bin0  = (int) binF;
+            float frac  = binF - (float) bin0;
+            
+            bin0 = juce::jlimit (0, (int) numBins - 2, bin0);
+            
+            // Interpolate between neighbouring bins
+            logMapped[i] = spectrumData[bin0] + frac * (spectrumData[bin0 + 1] - spectrumData[bin0]);
+        }
+
+        juce::FloatVectorOperations::copy (spectrumData.data(), logMapped.data(), (int) numOutputBins);
+
         repaint();
     }
     

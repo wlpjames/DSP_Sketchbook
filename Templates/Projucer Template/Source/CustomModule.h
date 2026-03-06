@@ -100,11 +100,11 @@ private:
     float m_gain = 0;
 };
 
-using voiceModules = sketchbook::ModuleList</*CustomModule, */sketchbook::Sampler/*, sketchbook::SimpleOsc*/>;
+using voiceModules = sketchbook::ModuleList</*CustomModule, */sketchbook::Sampler, sketchbook::SimpleOsc>;
 using postProscessEffects = sketchbook::ModuleList<sketchbook::Reverb, sketchbook::Delay>;
 using mosulationSources = sketchbook::ModuleList<>;
 
 SKETCHBOOK_DECLARE_APP("Sketchbook Template",
-                       /* list of modules in voice    */voiceModules,
-                       /* list of post process effects*/postProscessEffects,
-                       /* list of modulation sources  */mosulationSources)
+                       voiceModules,         /* list of modules in voice    */
+                       postProscessEffects,  /* list of post process effects*/
+                       mosulationSources)    /* list of modulation sources  */

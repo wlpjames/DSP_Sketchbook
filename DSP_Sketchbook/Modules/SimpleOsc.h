@@ -26,33 +26,18 @@ public:
             
             Parameter::Float("Pulse", [&] (juce::var value)
             {
-                m_pulseLen = float(value);
-            }, 0.5, 0.0, 1.0),
+                m_pulseLen = 1.f - float(value);
+            }, 0.0, 0.0, 0.9),
             
             Parameter::Float("Phase", [&] (juce::var value)
             {
-                m_phaseOffset = float(value);
-            }, 0.5, 0.0, 1.0),
+                m_phaseDistort = float(value);
+            }, 0.25, 0.25, 0.49),
             
             Parameter::Float("Gain", [&] (juce::var value)
             {
                 m_gain = float(value);
-            }, 0.5, 0.f, 1.0),
-            
-            Parameter::Boolean("Test Boolean", [this] (bool value)
-            {
-                DBG(juce::String("Test Boolean : ") + (value ? juce::String("True") : juce::String("False")));
-            }, true),
-            
-            Parameter::Choice("Text Choice", [this] (juce::String value)
-            {
-                DBG(juce::String("Test Choice : " + value));
-            }, {"Item 1", "Item 2", "Item 3"}, "Item 1"),
-            
-            Parameter::Integer("Integer Test", [this] (int value)
-            {
-                DBG(juce::String("Integer Value : ") + juce::String(value));
-            }, 1, 0, 10)
+            }, 1.0, 0.f, 1.0),
         });
     }
     
@@ -89,9 +74,28 @@ public:
     
     void processSample(float* sample) override
     {
-        const float alteredPhase = m_phase > m_pulseLen ? 0.f : m_phase * 1 / m_pulseLen;
-        *sample += std::sin(alteredPhase * juce::MathConstants<float>::twoPi) * m_gain;
-        *sample += std::sin((alteredPhase + m_phaseOffset) * juce::MathConstants<float>::twoPi) * m_gain;
+        float phase = m_phase;
+        
+        //apply the phase distortion - the wave aproaches a saw
+        if (phase < m_phaseDistort)
+        {
+            phase = 0.25f * (phase / m_phaseDistort);
+        }
+        else if (phase > 1.f - m_phaseDistort)
+        {
+            phase = 0.75f + (0.25f * ((m_phaseDistort - (1.f - phase)) / m_phaseDistort));
+        }
+        else
+        {
+            float space = 1.f - m_phaseDistort * 2.f;
+            phase = 0.25f + (0.5f * ((phase - m_phaseDistort) / space));
+        }
+        
+        //apply the pulse distort to the phase i.e
+        //after the pulse len phase is always 0
+        phase = phase > m_pulseLen ? 0.f : phase / m_pulseLen;
+            
+        *sample += std::sin(phase * juce::MathConstants<float>::twoPi) * m_gain;
         
         //increment and wrap
         m_phase += m_phaseInc;
@@ -110,7 +114,7 @@ private:
     float m_freqHz = 0;
     float m_phase = 0;
     float m_phaseInc = 0;
-    float m_phaseOffset=0;
+    float m_phaseDistort = 0;
     float m_pulseLen = 0;
     float m_gain = 0;
 };

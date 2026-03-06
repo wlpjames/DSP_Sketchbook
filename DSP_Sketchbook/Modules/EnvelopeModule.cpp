@@ -176,6 +176,7 @@ void EnvelopeModule::setTargetRatioA(double targetRatio)
 {
     if (targetRatio < 0.000000001)
         targetRatio = 0.000000001;  // -180 dB
+    
     targetRatioA = targetRatio;
     attackCoef = calcCoef(attackRate, targetRatioA);
     attackBase = (1.0 + targetRatioA) * (1.0 - attackCoef);
@@ -185,6 +186,7 @@ void EnvelopeModule::setTargetRatioDR(double targetRatio)
 {
     if (targetRatio < 0.000000001)
         targetRatio = 0.000000001;  // -180 dB
+    
     targetRatioDR = targetRatio;
     decayCoef = calcCoef(decayRate, targetRatioDR);
     releaseCoef = calcCoef(releaseRate, targetRatioDR);

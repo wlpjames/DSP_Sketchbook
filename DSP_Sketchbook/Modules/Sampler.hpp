@@ -26,17 +26,24 @@ public:
         
     }
     
-    void setSample(juce::AudioBuffer<float>& sample, float sampleRateOfSample)
+    void setSample(juce::String ident, juce::AudioBuffer<float>& sample, float sampleRateOfSample)
     {
-        m_originalSampleRate = sampleRateOfSample;
-        m_originalSample.makeCopyOf(sample);
-        calculateRows();
+        if (m_currSampleIdent != ident)
+        {
+            m_currSampleIdent = ident;
+            m_originalSampleRate = sampleRateOfSample;
+            m_originalSample.makeCopyOf(sample);
+            calculateRows();
+        }
     }
     
     void setSampleRate(float samplerate)
     {
-        m_samplerate = samplerate;
-        calculateRows();
+        if (m_samplerate != samplerate)
+        {
+            m_samplerate = samplerate;
+            calculateRows();
+        }
     }
     
     std::shared_ptr<WaveTableRow> getRowForMidiNote(int midiNote)
@@ -66,6 +73,11 @@ public:
     float getSampleRateOfSample()
     {
         return m_originalSampleRate;
+    }
+    
+    bool hasSample()
+    {
+        return m_currSampleIdent.isNotEmpty();
     }
     
 private:
@@ -112,31 +124,17 @@ private:
     juce::Array<std::shared_ptr<WaveTableRow>> m_rows;
     juce::Array<std::shared_ptr<WaveTableRow>> m_waitingRows;
     juce::IIRFilter m_lowPass;
+    juce::String m_currSampleIdent;
 };
 
 class Sampler : public Module
 {
 public:
     Sampler()
-    : m_waveTable(NumWaveTables)
     {
         setVoiceMonitorType(adsr);
         
         m_audioFormatManager.registerBasicFormats();
-        
-        //load initial audio sample from binary data
-        juce::AudioBuffer<float> buffer;
-        
-        if (auto* reader = m_audioFormatManager.createReaderFor(std::make_unique<juce::MemoryInputStream>(DSP_SKETCHBOOK_BINARY::grand_piano_C_wav,
-                                                                                                          DSP_SKETCHBOOK_BINARY::grand_piano_C_wavSize,
-                                                                                                          false)))
-        {
-            buffer.setSize(reader->numChannels, reader->lengthInSamples);
-            if (reader->read(&buffer, 0, int(reader->lengthInSamples), 0, true, true))
-            {
-                m_waveTable.setSample(buffer, reader->sampleRate);
-            }
-        }
         
         ///create and set the shared data to avoid a wave table being alocated on every voice
         ///in reality - before any voices are instatiate a copy of this module will be made and the engine will pass that shared data
@@ -158,7 +156,7 @@ public:
                     buffer.setSize(reader->numChannels, int(reader->lengthInSamples));
                     if (reader->read(&buffer, 0, int(reader->lengthInSamples), 0, true, true))
                     {
-                        getSharedData<BandLimitedWaveTable>()->setSample(buffer, reader->sampleRate);
+                        getSharedData<BandLimitedWaveTable>()->setSample(filePath, buffer, reader->sampleRate);
                     }
                 }
             }, "Grand Piano"),
@@ -178,7 +176,24 @@ public:
     void prepareToPlay(float samplerate, int buffersize) override
     {
         m_samplerate = samplerate;
-        m_waveTable.setSampleRate(samplerate);
+        getSharedData<BandLimitedWaveTable>()->setSampleRate(samplerate);
+        
+        if (!getSharedData<BandLimitedWaveTable>()->hasSample())
+        {
+            //load initial audio sample from binary data
+            juce::AudioBuffer<float> buffer;
+            
+            if (auto* reader = m_audioFormatManager.createReaderFor(std::make_unique<juce::MemoryInputStream>(DSP_SKETCHBOOK_BINARY::grand_piano_C_wav,
+                                                                                                              DSP_SKETCHBOOK_BINARY::grand_piano_C_wavSize,
+                                                                                                              false)))
+            {
+                buffer.setSize(reader->numChannels, int(reader->lengthInSamples));
+                if (reader->read(&buffer, 0, int(reader->lengthInSamples), 0, true, true))
+                {
+                    getSharedData<BandLimitedWaveTable>()->setSample("Grand Piano", buffer, reader->sampleRate);
+                }
+            }
+        }
     }
     
     void noteOn(const sketchbook::NoteOnEvent& event) override
@@ -187,8 +202,8 @@ public:
         {
             reset();
             m_midiNote = event.midiMessage.getNoteNumber();
-            m_waveTable.swapOutRowsIfNeeded();
-            m_currSample = m_waveTable.getRowForMidiNote(m_midiNote);
+            getSharedData<BandLimitedWaveTable>()->swapOutRowsIfNeeded();
+            m_currSample = getSharedData<BandLimitedWaveTable>()->getRowForMidiNote(m_midiNote);
         }
     }
     
@@ -205,8 +220,11 @@ public:
     
     void pitchUpdated(float pitchHz) override
     {
-        m_freqHz = pitchHz;
-        calcIncrement();
+        if (pitchHz != m_freqHz)
+        {
+            m_freqHz = pitchHz;
+            calcIncrement();
+        }
     }
     
     void processSample(float* sample) override
@@ -238,7 +256,7 @@ private:
     
     void calcIncrement()
     {
-        m_increment = (m_freqHz / 440) * (m_waveTable.getSampleRateOfSample() / m_samplerate);
+        m_increment = (m_freqHz / 440) * (getSharedData<BandLimitedWaveTable>()->getSampleRateOfSample() / m_samplerate);
     }
     
 private:
@@ -252,7 +270,6 @@ private:
     
     //wave tables
     const int NumWaveTables = 16;
-    BandLimitedWaveTable m_waveTable;
     std::shared_ptr<BandLimitedWaveTable::WaveTableRow> m_currSample;
     juce::AudioFormatManager m_audioFormatManager;
 };

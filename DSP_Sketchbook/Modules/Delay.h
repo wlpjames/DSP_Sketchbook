@@ -16,6 +16,7 @@ public:
     
     Delay()
     {
+        setIsDefaultEnabled(false);
         
         //init arrays
         delayBufferL = new float[nativeSR];

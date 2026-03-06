@@ -190,7 +190,7 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
         juce::ValueTree vcModule = Module::getDefaultState("Voice Control");
         vcModule.removeProperty(Module::ParamIdents::ENABLED, nullptr);
         auto voiceMode = Module::Parameter::Choice("Voice Mode", [&] (juce::var) {}, {"Poly", "Mono", "Legato"}, "Poly");
-        auto portaTime = Module::Parameter::Float("Porta Time",  [&] (juce::var) {}, 0.3f, 0.f, 1.f);
+        auto portaTime = Module::Parameter::Float("Porta Time",  [&] (juce::var) {}, 0.0f, 0.f, 1.f);
         vcModule.getChildWithName(Module::ParamIdents::PARAMETERS).addChild(voiceMode->getValueTree(), -1, nullptr);
         vcModule.getChildWithName(Module::ParamIdents::PARAMETERS).addChild(portaTime->getValueTree(), -1, nullptr);
         tree.getChildWithName(Module::ParamIdents::MODULES).addChild(vcModule, -1, nullptr);
@@ -231,7 +231,7 @@ class AudioBufferQueue
 {
     public:
     //==============================================================================
-    static constexpr size_t order = 9;
+    static constexpr size_t order = 11;
     static constexpr size_t bufferSize = 1U << order;
     static constexpr size_t numBuffers = 5;
     
