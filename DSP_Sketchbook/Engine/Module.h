@@ -51,6 +51,23 @@ class Module : public juce::ValueTree::Listener
     public:
     
     class SharedData {};
+    class SharedDataHolderBase
+    {
+        public:
+        virtual ~SharedDataHolderBase() {}
+        virtual std::shared_ptr<SharedData> createSharedData() const = 0;
+    };
+    
+    template <typename SharedDataType>
+    class SharedDataHolder : public SharedDataHolderBase
+    {
+        public:
+        virtual ~SharedDataHolder() {}
+        std::shared_ptr<SharedData> createSharedData() const override
+        {
+            return std::make_shared<SharedDataType>();
+        }
+    };
     
     enum VoiceMonitorType
     {
@@ -326,7 +343,6 @@ class Module : public juce::ValueTree::Listener
     template<typename SharedDataType>
     std::shared_ptr<SharedDataType> getSharedData()
     {
-        static_assert(std::is_base_of<Module::SharedData, SharedDataType>(), "SharedDataType muse be derived from Module::SharedData");
         return std::static_pointer_cast<SharedDataType>(m_sharedData);
     }
     

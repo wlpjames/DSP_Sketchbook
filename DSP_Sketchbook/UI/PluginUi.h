@@ -187,7 +187,7 @@ private juce::Timer
             s = juce::jmap (juce::jlimit (mindB, maxdB, juce::Decibels::gainToDecibels (s) - juce::Decibels::gainToDecibels (float(fftSize))), mindB, maxdB, 0.f, 1.f);
 
         // --- Remap linear bins into log-scaled output in-place ---
-        static constexpr float minFreq = 1.f;
+        static constexpr float minFreq = 30.f;
         static constexpr float maxFreq = 20000.f;
         auto numBins = fftSize / 2 + 1;
         auto numOutputBins = numBins; // same size, remapped

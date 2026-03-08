@@ -20,8 +20,8 @@ public:
         int maxMidiNote = 127;
     };
     
-    BandLimitedWaveTable(int numWaveTables)
-    : m_numWaveTables(numWaveTables)
+    /// note - due to templat
+    BandLimitedWaveTable()
     {
         
     }
@@ -118,7 +118,7 @@ private:
     
     float m_samplerate = 44100;
     float m_originalSampleRate= 44100;
-    int m_numWaveTables = 0;
+    const int m_numWaveTables = 16;
     bool m_waitingToSwapOutRows = false;
     juce::AudioBuffer<float> m_originalSample;
     juce::Array<std::shared_ptr<WaveTableRow>> m_rows;
@@ -127,19 +127,15 @@ private:
     juce::String m_currSampleIdent;
 };
 
-class Sampler : public Module
+class Sampler : public Module, public Module::SharedDataHolder<BandLimitedWaveTable>
 {
 public:
+    
     Sampler()
     {
         setVoiceMonitorType(adsr);
         
         m_audioFormatManager.registerBasicFormats();
-        
-        ///create and set the shared data to avoid a wave table being alocated on every voice
-        ///in reality - before any voices are instatiate a copy of this module will be made and the engine will pass that shared data
-        ///to all subsequent instances of the sampler on each voice
-        setSharedData(std::make_shared<BandLimitedWaveTable>(NumWaveTables));
         
         //set the parameter structure
         setModuleParameters(
@@ -269,7 +265,6 @@ private:
     float m_increment = 0.f;
     
     //wave tables
-    const int NumWaveTables = 16;
     std::shared_ptr<BandLimitedWaveTable::WaveTableRow> m_currSample;
     juce::AudioFormatManager m_audioFormatManager;
 };

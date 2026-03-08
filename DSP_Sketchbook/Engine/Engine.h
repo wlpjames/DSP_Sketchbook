@@ -93,7 +93,11 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
         tmpVoiceModules.forEach([&] (Module& mod, auto)
         {
             pluginData.getChildWithName(Module::ParamIdents::MODULES).addChild(mod.getModuleState(), -1, nullptr);
-            moduleSharedData.addEntry(mod.getName(), mod.getSharedData<Module::SharedData>());
+            
+            if (auto sdh = dynamic_cast<Module::SharedDataHolderBase*>(&mod))
+            {
+                moduleSharedData.addEntry(mod.getName(), sdh->createSharedData());
+            }
         });
         
         //do the same for modulation sources
