@@ -59,9 +59,9 @@ public:
     }
 };
 
-using VoiceModules = sketchbook::ModuleList<CustomModule, sketchbook::Sampler, sketchbook::SimpleOsc>;
-using PostProscessEffects = sketchbook::ModuleList<sketchbook::Reverb, sketchbook::Delay>;
-using ModulationSources = sketchbook::ModuleList<sketchbook::EnvelopeModule, sketchbook::LfoModule>;
+using VoiceModules 			= sketchbook::ModuleList<CustomModule, sketchbook::Sampler, sketchbook::SimpleOsc>;
+using PostProscessEffects 	= sketchbook::ModuleList<sketchbook::Reverb, sketchbook::Delay>;
+using ModulationSources 	= sketchbook::ModuleList<sketchbook::EnvelopeModule, sketchbook::LfoModule>;
 
 /// Decare the app here!
 /// The first argument is the title that will be displayed at the top of the UI
