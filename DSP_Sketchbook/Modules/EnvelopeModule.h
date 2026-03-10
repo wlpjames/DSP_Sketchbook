@@ -12,10 +12,12 @@
 #include <JuceHeader.h>
 #include "../Engine/Module.h"
 
+namespace sketchbook
+{
 //MARK: Envelope
 class EnvelopeModule : public sketchbook::Module
 {
-public:
+    public:
     
     enum envState {
         env_idle = 0,
@@ -46,8 +48,8 @@ public:
     
     juce::String getName() override;
     
-private:
-
+    private:
+    
     void setAttackRate(double rate);
     
     void setDecayRate(double rate);
@@ -69,7 +71,7 @@ private:
      */
     void setMinimalAttackRelease(float pitch);
     
-private:
+    private:
     
     void setTargetRatioA(double targetRatio);
     
@@ -100,7 +102,7 @@ private:
     float currValue;
     float velocityMod=1.f;
     float noteVelocity= 1.f;
-
+    
     //exponents aim to these value so as they pass through 0 and 1
     double attackBase;
     double decayBase;
@@ -108,4 +110,4 @@ private:
     double quickReleaseBase;
     float samplerate;
 };
-
+} //end namespace sketchbook

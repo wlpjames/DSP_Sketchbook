@@ -10,6 +10,9 @@
 
 #include "EnvelopeModule.h"
 
+namespace sketchbook
+{
+
 EnvelopeModule::EnvelopeModule()
 {
     reset();
@@ -27,27 +30,27 @@ EnvelopeModule::EnvelopeModule()
     setModuleParameters({
         
         Parameter::Float("Attack", [this](juce::var value)
-        {
+                         {
             setAttackRate(value);
         }, 0.01f, 0.001f, 10.0f),
-
+        
         Parameter::Float("Decay", [this](juce::var value)
-        {
+                         {
             setDecayRate(value);
         }, 0.1f, 0.001f, 10.0f),
-
+        
         Parameter::Float("Sustain", [this](juce::var value)
-        {
+                         {
             setSustainLevel(value);
         }, 0.8f, 0.0f, 1.0f),
-
+        
         Parameter::Float("Release", [this](juce::var value)
-        {
+                         {
             setReleaseRate(value);
         }, 0.5f, 0.001f, 10.0f),
         
         Parameter::Float("Velocity", [this](juce::var value)
-        {
+                         {
             setVelocityMod(value);
         }, 1.0f, 0.0f, 1.0f)
     });
@@ -78,8 +81,8 @@ juce::String EnvelopeModule::getName()
 }
 
 /**
-     Processes a buffer through the envelope apllying gain
-*/
+ Processes a buffer through the envelope apllying gain
+ */
 void EnvelopeModule::process(juce::AudioBuffer<float>& inputBuffer)
 {
     for (int i = 0; i < inputBuffer.getNumSamples(); i++) {
@@ -87,7 +90,7 @@ void EnvelopeModule::process(juce::AudioBuffer<float>& inputBuffer)
         processSample(&temp);
         internalBuffer.data.getWritePointer(0)[i] = temp;
     }
-
+    
     for (int i = 0; i < inputBuffer.getNumChannels(); i++)
     {
         for (int j = 0; j < inputBuffer.getNumSamples(); j++)
@@ -254,6 +257,7 @@ void EnvelopeModule::setMinimalAttackRelease(float pitch)
     minimalRelease = 1000 / pitch*2;
     
     //minimal release
-    quickReleaseCoef = calcCoef( minimalRelease, targetRatioDR);
+    quickReleaseCoef = calcCoef(minimalRelease, targetRatioDR);
     quickReleaseBase = releaseBase = -targetRatioDR * (1.0 - releaseCoef);
 }
+} //end namespace sketchbook
