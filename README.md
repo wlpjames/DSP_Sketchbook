@@ -1,8 +1,7 @@
 # DSP Sketchbook
 
-## UNDER CONSTRUCTION, PLEASE CHECK BACK WITH US SOON
-
-Inline-style: 
+UNDER CONSTRUCTION, PLEASE CHECK BACK WITH US SOON
+ 
 <img src="https://github.com/wlpjames/DSP_Sketchbook/blob/main/Images/dsp_sketchbook_ui.png" alt="Alt Text" width="50%" height="50%">
 
 ## Get started with the DSP_Sketchbook_Template Repo
