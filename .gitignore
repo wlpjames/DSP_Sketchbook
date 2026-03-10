@@ -14,3 +14,11 @@ Templates/CMake Template/build/
 Templates/Projucer Template/JuceLibraryCode/
 
 Templates/Projucer Template/Builds/
+
+Examples/CMake Template/build/build/
+
+Examples/CMake Template/build/
+
+Examples/Projucer Template/Builds/
+
+Examples/Projucer Template/JuceLibraryCode/
