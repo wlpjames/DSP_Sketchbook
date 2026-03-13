@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="HLjQcf" name="DSP Sketchbook" projectType="audioplug" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" pluginManufacturer="DSP Sketchbook"
+              pluginCharacteristicsValue="pluginIsSynth,pluginWantsMidiIn">
   <MAINGROUP id="miUSww" name="DSP Sketchbook">
     <GROUP id="{63459CC2-31B3-090A-B2DD-CCBEBBD1B044}" name="Source">
       <FILE id="F4zW6o" name="CustomModule.cpp" compile="1" resource="0"

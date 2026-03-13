@@ -13,10 +13,10 @@
 
 namespace sketchbook
 {
-class Reverb : public Module
+class ReverbModule : public Module
 {
 public:
-    Reverb()
+    ReverbModule()
     : dragonFlyReverb(samplerate)
     {
         setModuleParameters({

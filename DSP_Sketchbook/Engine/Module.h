@@ -164,13 +164,11 @@ class Module : public juce::ValueTree::Listener
     
     class ModifiedParameter
     {
+    private:
         
-        private:
         class Mapping : juce::ValueTree::Listener
         {
-            
-            public:
-            
+        public:
             juce::ValueTree data;
             Module* sourceModule;
             float amount = 1.0;
@@ -218,12 +216,15 @@ class Module : public juce::ValueTree::Listener
         }
     };
     
-    public:
+public:
     
     Module();
     
     virtual ~Module() override;
     
+    //-------------------------------------------------------
+    //  Virtual Functions
+    //-------------------------------------------------------
     virtual void prepareToPlay(float samplerate, int buffersize);
     
     virtual void noteOn(const NoteOnEvent& event);
@@ -241,8 +242,9 @@ class Module : public juce::ValueTree::Listener
     virtual void pitchUpdated(float newPitch) {}
     
     virtual juce::String getName() = 0;
-    
-    bool isModuleEnabled();
+    //-------------------------------------------------------
+    //-------------------------------------------------------
+    //-------------------------------------------------------
     
     /**
      By default this will be true
@@ -250,6 +252,8 @@ class Module : public juce::ValueTree::Listener
     void setIsDefaultEnabled(bool defaultEnabled);
     
     void setVoiceMonitorType(VoiceMonitorType type);
+    
+    bool isModuleEnabled();
     
     VoiceMonitorType getVoiceMonitorType();
     

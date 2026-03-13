@@ -24,16 +24,14 @@
 
 //ENGINE
 #include "Engine/Module.cpp"
-#include "Engine/Voices.cpp"
-//#include "Engine/Engine.cpp"
 
 //MODULES
 #include "Modules/EnvelopeModule.cpp"
-#include "Modules/ModulationSources.cpp"
-#include "Modules/Delay.cpp"
+#include "Modules/LfoModule.cpp"
+#include "Modules/DelayModule.cpp"
 
-#include "Modules/Reverb.cpp"
-#include "Modules/Sampler.cpp"
+#include "Modules/ReverbModule.cpp"
+#include "Modules/SamplerModule.cpp"
 #include "Modules/DragonFlyReverb/DSP.cpp"
 
 #include "Modules/DragonFlyReverb/freeverb/allpass.cpp"
@@ -56,7 +54,6 @@
 
 //App
 #include "App/PluginEditor.cpp"
-#include "App/PluginProcessor.cpp"
 
 //UI
 #include "UI/LookAndFeel.cpp"

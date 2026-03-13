@@ -32,27 +32,8 @@
 #include <juce_dsp/juce_dsp.h>
 #include <juce_animation/juce_animation.h>
 
-//TODO: this should live elsewhere
-namespace sketchbook
-{
-class AudioBufferQueue;
-class Module;
-class KeyboardWindow;
-struct Context
-{
-    juce::MidiKeyboardState midiKeyboardState;
-    juce::ValueTree parameterData;
-    juce::MidiMessageCollector midiMessageCollector;
-    sketchbook::AudioBufferQueue* audioBufferQueue;
-    std::unique_ptr<sketchbook::KeyboardWindow> keyboardWindow;
-    juce::String projectName;
-    
-    //TODO: this is here as a work around to acessing
-    //TODO: unknown templated functions, a beter method should
-    //TODO: probably be found
-    std::function<sketchbook::Module*(juce::String)> getLatestPlayingModuleByName;
-};
-}
+//CONTEXT
+#include "App/Context.h"
 
 //BINARY DATA
 #include "Resources/BinaryData/DSP_SKETCHBOOK_BINARY.h"
@@ -63,14 +44,15 @@ struct Context
 #include "Engine/Voices.h"
 
 //MODULES
-#include "Modules/EnvelopeModule.h"
-#include "Modules/Delay.h"
-#include "Modules/Reverb.h"
+#include "Modules/DelayModule.h"
+#include "Modules/ReverbModule.h"
+#include "Modules/DistortionModule.h"
 
-#include "Modules/FX.h"
-#include "Modules/ModulationSources.h"
-#include "Modules/SimpleOsc.h"
-#include "Modules/Sampler.hpp"
+#include "Modules/LfoModule.h"
+#include "Modules/EnvelopeModule.h"
+
+#include "Modules/SimpleOscModule.h"
+#include "Modules/SamplerModule.hpp"
 
 //APP
 #include "App/AppDecl.h"

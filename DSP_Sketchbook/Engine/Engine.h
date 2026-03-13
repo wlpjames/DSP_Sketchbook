@@ -4,7 +4,7 @@
 
 #include "Module.h"
 #include "Voices.h"
-#include "../Modules/ModulationSources.h"
+#include "../Modules/LfoModule.h"
 #include "../Modules/EnvelopeModule.h"
 
 namespace sketchbook

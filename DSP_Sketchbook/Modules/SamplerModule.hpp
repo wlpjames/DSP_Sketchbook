@@ -127,11 +127,11 @@ private:
     juce::String m_currSampleIdent;
 };
 
-class Sampler : public Module, public Module::SharedDataHolder<BandLimitedWaveTable>
+class SamplerModule : public Module, public Module::SharedDataHolder<BandLimitedWaveTable>
 {
 public:
     
-    Sampler()
+    SamplerModule()
     {
         setVoiceMonitorType(adsr);
         
@@ -164,7 +164,7 @@ public:
         });
     }
     
-    ~Sampler()
+    ~SamplerModule()
     {
         
     }

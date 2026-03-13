@@ -118,9 +118,9 @@ private:
 };
 
 /// The processing chain can be defined here, the engine will instantiate multiple instances of each voice module and modulation source, one for each voice
-using VoiceModules = sketchbook::ModuleList<CustomModule, sketchbook::Sampler, sketchbook::SimpleOsc>;
+using VoiceModules = sketchbook::ModuleList<CustomModule, sketchbook::SamplerModule, sketchbook::SimpleOsc>;
 
-using PostProscessEffects = sketchbook::ModuleList<sketchbook::Reverb, sketchbook::Delay>;
+using PostProscessEffects = sketchbook::ModuleList<sketchbook::ReverbModule, sketchbook::Delay>;
 
 using ModulationSources = sketchbook::ModuleList<sketchbook::EnvelopeModule,
                                                  sketchbook::EnvelopeModule,
