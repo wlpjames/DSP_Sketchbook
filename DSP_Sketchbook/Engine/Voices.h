@@ -573,14 +573,14 @@ private:
             {
                 auto nextVoice = getNextVoice();
                 
-                if (nextVoice.isPlaying())
+                if (nextVoice->isPlaying())
                 {
                     NoteOnEvent noteOn = {message, true, glideFromNote};
                     nextVoice->noteOn(noteOn);
                 }
                 else
                 {
-                    NoteOnEvent noteOn = { message, false, glideFromNote};
+                    NoteOnEvent noteOn = {message, false, glideFromNote};
                     nextVoice->reset();
                     nextVoice->noteOn(noteOn);
                 }
