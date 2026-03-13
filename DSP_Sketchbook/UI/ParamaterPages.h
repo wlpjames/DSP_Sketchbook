@@ -762,6 +762,7 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
             data = _data;
             data.addListener(this);
             
+            onOffButton.setVisible(data.hasProperty(Module::ParamIdents::ENABLED));
             onOffButton.setClickingTogglesState (true);
             onOffButton.setToggleState(data[Module::ParamIdents::ENABLED], juce::dontSendNotification);
             onOffButton.onStateChange = [this] ()
@@ -864,6 +865,7 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
         for (auto sourceData : tree)
         {
             auto header = std::make_unique<ExpandableModuleHeader>(sourceData[Module::ParamIdents::NAME].toString());
+            header->setData(sourceData);
             auto panel = new ExpandableModule(ctx);
             panel->setData(sourceData);
             addItem(panel, "", std::move(header));

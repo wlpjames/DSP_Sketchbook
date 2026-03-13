@@ -78,7 +78,9 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
         
         if (isVoiceEnvelopeNeeded())
         {
-            pluginData.getChildWithName(Module::ParamIdents::MODULES).addChild(EnvelopeModule().getModuleState(), -1, nullptr);
+            auto envState = EnvelopeModule().getModuleState();
+            envState.removeProperty(Module::ParamIdents::ENABLED, nullptr);
+            pluginData.getChildWithName(Module::ParamIdents::MODULES).addChild(envState, -1, nullptr);
         }
         
         //set the data in the voice controller to track "voice mode"
@@ -171,7 +173,7 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
         sketchbook::VoiceController<VoiceModules, ModulationSources>::process(buffer, midiMessages, startSample, numSamples);
         
         fxChain.forEach([&] (auto& mod, auto)
-                        {
+        {
             mod.runModulations();
             if (mod.isModuleEnabled())
                 mod.process(buffer);

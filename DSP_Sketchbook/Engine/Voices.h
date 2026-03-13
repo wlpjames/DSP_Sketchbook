@@ -571,10 +571,20 @@ private:
         {
             case ArticulationType::poly:
             {
-                NoteOnEvent noteOn = { message, false, glideFromNote};
                 auto nextVoice = getNextVoice();
-                nextVoice->reset();
-                nextVoice->noteOn(noteOn);
+                
+                if (nextVoice.isPlaying())
+                {
+                    NoteOnEvent noteOn = {message, true, glideFromNote};
+                    nextVoice->noteOn(noteOn);
+                }
+                else
+                {
+                    NoteOnEvent noteOn = { message, false, glideFromNote};
+                    nextVoice->reset();
+                    nextVoice->noteOn(noteOn);
+                }
+                
                 break;
             }
             case ArticulationType::mono:
@@ -626,12 +636,8 @@ private:
             case ArticulationType::poly:
             {
                 //get matching note
-                auto v = getVoiceByNoteNumber(message.getNoteNumber());
-                
-                if (v)
-                {
-                    v->noteOff( false);
-                }
+                if (auto v = getVoiceByNoteNumber(message.getNoteNumber()))
+                    v->noteOff(false);
             }
             case ArticulationType::mono:
             {
@@ -681,13 +687,7 @@ private:
             }
         }
         
-        if (voices[0]->isPlaying())
-        {
-            voices[0]->reset();
-        }
-        
         //TODO: steal a voice if no other is found
-        
         return voices[0];
     }
     

@@ -40,7 +40,10 @@ namespace sketchbook
             }
             
             //load module meta
-            currModule[params::ENABLED] == moduleToLoad[params::ENABLED];
+            if (currModule.hasProperty(params::ENABLED))
+            {
+                currModule.setProperty(params::ENABLED, moduleToLoad[params::ENABLED], &context.undoManager);
+            }
             
             for (auto currParam : currModule.getChildWithName(params::PARAMETERS))
             {
