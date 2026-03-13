@@ -205,17 +205,19 @@ public:
     //==============================================================================
     void getStateInformation (juce::MemoryBlock& destData)
     {
-        juce::ignoreUnused(destData);
-        // You should use this method to store your parameters in the memory block.
-        // You could do that either as raw data, or use the XML or ValueTree classes
-        // as intermediaries to make it easy to save and load complex data.
+        juce::MemoryOutputStream stream(destData, true);
+        stream.writeString(context.parameterData.toXmlString());
     }
 
     void setStateInformation (const void* data, int sizeInBytes)
     {
-        juce::ignoreUnused(data, sizeInBytes);
-        // You should use this method to restore your parameters from this memory block,
-        // whose contents will have been created by the getStateInformation() call.
+        juce::MemoryBlock block(data, sizeInBytes);
+        juce::MemoryInputStream stream(block, false);
+        juce::String xmlString = stream.readEntireStreamAsString();
+        juce::ValueTree valueTree = juce::ValueTree::fromXml(xmlString);
+        
+        if (valueTree.isValid())
+            sketchbook::loadPreviousPluginState(context, valueTree);
     }
 
     sketchbook::AudioEngine<VoiceModules, FxModules, ModulationSources> audioEngine;

@@ -42,6 +42,7 @@
 #include "Engine/Engine.h"
 #include "Engine/Module.h"
 #include "Engine/Voices.h"
+#include "Engine/ParameterLoading.h"
 
 //MODULES
 #include "Modules/DelayModule.h"

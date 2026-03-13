@@ -22,6 +22,7 @@ struct Context
     sketchbook::AudioBufferQueue* audioBufferQueue;
     std::unique_ptr<sketchbook::KeyboardWindow> keyboardWindow;
     juce::String projectName;
+    juce::UndoManager undoManager;
     
     //TODO: this is here as a work around to acessing
     //TODO: unknown templated functions, a beter method should
