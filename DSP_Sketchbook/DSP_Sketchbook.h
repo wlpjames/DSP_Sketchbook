@@ -45,6 +45,7 @@ struct Context
     juce::MidiMessageCollector midiMessageCollector;
     sketchbook::AudioBufferQueue* audioBufferQueue;
     std::unique_ptr<sketchbook::KeyboardWindow> keyboardWindow;
+    juce::String projectName;
     
     //TODO: this is here as a work around to acessing
     //TODO: unknown templated functions, a beter method should
@@ -77,10 +78,12 @@ struct Context
 #include "App/PluginEditor.h"
 
 //UI
-#include "UI/StyledSlider.h"
+#include "UI/Slider.h"
 #include "UI/LookAndFeel.h"
 #include "UI/ParamaterPages.h"
-#include "UI/PluginUi.h"
+#include "UI/KeyboardWindow.h"
+#include "UI/ScopeComponent.h"
+#include "UI/PluginUIPages.h"
 
 
 

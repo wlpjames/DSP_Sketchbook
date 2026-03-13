@@ -10,256 +10,23 @@
 
 #pragma once
 #include "ParamaterPages.h"
+#include "KeyboardWindow.h"
+#include "ScopeComponent.h"
 #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 
 namespace sketchbook
 {
 
-class MainPanelComponent;
-
-class KeyboardWindow : public juce::DocumentWindow
-{
-    public:
-    
-    class KeyboardComponent : public juce::MidiKeyboardComponent
-    {
-        public:
-        KeyboardComponent(juce::MidiKeyboardState& state, Orientation orientation)
-        : MidiKeyboardComponent(state, orientation)
-        {
-            setMidiChannel (1);
-            setColour(juce::MidiKeyboardComponent::ColourIds::blackNoteColourId, {28, 28, 28});
-            setColour(juce::MidiKeyboardComponent::ColourIds::whiteNoteColourId, {220, 220, 220});
-        }
-        
-        void drawBlackNote(int /*midiNoteNumber*/, juce::Graphics& g, juce::Rectangle<float> area,
-                           bool isDown, bool isOver, juce::Colour noteFillColour) override
-        {
-            juce::Colour colour = isDown ? juce::Colour(35, 35, 35) : juce::Colour(28, 28, 28);
-            g.setColour(colour);
-            g.fillRect(area);
-        }
-        
-        /*
-         void drawWhiteNote(int midiNoteNumber, Graphics& g, Rectangle<float> area,
-         bool isDown, bool isOver, Colour lineColour, Colour textColour) override
-         */
-    };
-    
-    class WindowContent : public juce::Component
-    {
-        public:
-        WindowContent(Context& ctx)
-        : keyboardComponent(ctx.midiKeyboardState, juce::KeyboardComponentBase::horizontalKeyboard)
-        {
-            addAndMakeVisible(&keyboardComponent);
-            
-            addAndMakeVisible(m_label);
-            m_label.setText("DSP Sketchbook", juce::dontSendNotification);
-            m_label.setJustificationType(juce::Justification::centredRight);
-            m_label.setFont(juce::Font(juce::FontOptions("Futura", 17, juce::Font::FontStyleFlags::plain)));
-            m_label.setColour(juce::Label::ColourIds::textColourId, Style::getInstance()->themeColour);
-        }
-        
-        void resized() override
-        {
-            auto area = getLocalBounds();
-            keyboardComponent.setBounds(area.removeFromTop(area.getHeight() * 0.8).reduced(10, 25));
-            m_label.setBounds(area.reduced(10, 0).removeFromRight(area.getWidth() / 1.5));
-        }
-        
-        void paint(juce::Graphics& g) override
-        {
-            g.fillAll(Style::getInstance()->backgroundColour);
-        }
-        
-        private:
-        KeyboardComponent keyboardComponent;
-        juce::Label m_label;
-    };
-    
-    KeyboardWindow(Context& ctx)
-    : juce::DocumentWindow("Sketchbook - Keyboard",
-                           Style::getInstance()->backgroundColour,
-                           juce::DocumentWindow::closeButton)
-    , windowContent(ctx)
-    {
-        
-        setContentOwned(&windowContent, true);
-        setResizable (false, false);
-        setUsingNativeTitleBar (true);
-        toFront(true);
-        setVisible(true);
-        setSize(500, 175);
-    }
-    
-    private:
-    WindowContent windowContent;
-};
-
-//==============================================================================
-class ScopeComponent  : public juce::Component,
-private juce::Timer
-{
-    public:
-    using Queue = AudioBufferQueue;
-    
-    enum scopeToShow
-    {
-        osc, freq
-    };
-    
-    //==============================================================================
-    ScopeComponent (Queue& queueToUse)
-    : audioBufferQueue (queueToUse)
-    {
-        sampleData.fill (0.f);
-        setFramesPerSecond (30);
-        showScope(freq);
-        
-        //init spectrumData to 1.f
-        for (float& v : spectrumData)
-            v = 1.f;
-    }
-    
-    //==============================================================================
-    void setFramesPerSecond (int framesPerSecond)
-    {
-        jassert (framesPerSecond > 0 && framesPerSecond < 1000);
-        startTimerHz (framesPerSecond);
-    }
-    
-    //==============================================================================
-    void paint (juce::Graphics& g) override
-    {
-        auto area = getLocalBounds();
-        
-        // Spectrum
-        auto scopeRect = area.toFloat();
-        g.setColour(Style::getInstance()->backgroundColour);
-        g.fillRoundedRectangle(scopeRect, 5);
-        
-        scopeRect.reduce(10, 10);
-        
-        switch (currScope) {
-                
-            case osc:
-            {
-                g.setColour (Style::getInstance()->themeColour);
-                plot (sampleData.data(), sampleData.size(), g, scopeRect, 1.f, scopeRect.getHeight() / 2);
-                break;
-            }
-                
-            case freq:
-                g.setColour (Style::getInstance()->themeColour);
-                plot (spectrumData.data(), spectrumData.size() / 4, g, scopeRect.reduced(10));
-                break;
-                
-            default:
-                break;
-        }
-    }
-    
-    void showScope(scopeToShow scope)
-    {
-        currScope = scope;
-    }
-    
-    private:
-    
-    //==============================================================================
-    void timerCallback() override
-    {
-        /// the code bellow prived by claude.ai
-        audioBufferQueue.pop (sampleData.data());
-        juce::FloatVectorOperations::copy (spectrumData.data(), sampleData.data(), (int) sampleData.size());
-
-        auto fftSize = (size_t) fft.getSize();
-
-        jassert (spectrumData.size() == 2 * fftSize);
-        windowFun.multiplyWithWindowingTable (spectrumData.data(), fftSize);
-        fft.performFrequencyOnlyForwardTransform (spectrumData.data(), true);
-
-        static constexpr auto mindB = -160.f;
-        static constexpr auto maxdB = 0.f;
-
-        for (auto& s : spectrumData)
-            s = juce::jmap (juce::jlimit (mindB, maxdB, juce::Decibels::gainToDecibels (s) - juce::Decibels::gainToDecibels (float(fftSize))), mindB, maxdB, 0.f, 1.f);
-
-        // --- Remap linear bins into log-scaled output in-place ---
-        static constexpr float minFreq = 30.f;
-        static constexpr float maxFreq = 20000.f;
-        auto numBins = fftSize / 2 + 1;
-        auto numOutputBins = numBins; // same size, remapped
-        float sampleRate = 44100;
-
-        std::vector<float> logMapped (numOutputBins);
-
-        for (size_t i = 0; i < numOutputBins; ++i)
-        {
-            float normX = (float) i / (float) (numOutputBins - 1);
-            float freq  = minFreq * std::pow (maxFreq / minFreq, normX);
-            float binF  = freq / sampleRate * (float) fftSize;
-            
-            int   bin0  = (int) binF;
-            float frac  = binF - (float) bin0;
-            
-            bin0 = juce::jlimit (0, (int) numBins - 2, bin0);
-            
-            // Interpolate between neighbouring bins
-            logMapped[i] = spectrumData[bin0] + frac * (spectrumData[bin0 + 1] - spectrumData[bin0]);
-        }
-
-        juce::FloatVectorOperations::copy (spectrumData.data(), logMapped.data(), (int) numOutputBins);
-
-        repaint();
-    }
-    
-    //==============================================================================
-    static void plot (const float* data,
-                      size_t numSamples,
-                      juce::Graphics& g,
-                      juce::Rectangle<float> rect,
-                      float scaler = 1.f,
-                      float offset = 0.f)
-    {
-        auto w = rect.getWidth();
-        auto h = rect.getHeight();
-        auto right = rect.getRight();
-        
-        auto center = rect.getBottom() - offset;
-        auto gain = h * scaler;
-        
-        for (size_t i = 1; i < numSamples; ++i)
-            g.drawLine ({ juce::jmap (float(i - 1), 0.f, float(numSamples - 1), float(right - w), float(right)),
-                          center - gain * data[i - 1],
-                          juce::jmap (float(i), 0.f, float(numSamples - 1), float(right - w), float(right)),
-                          center - gain * data[i] });
-    }
-    
-    private:
-    //==============================================================================
-    scopeToShow currScope = osc;
-    
-    Queue& audioBufferQueue;
-    std::array<float, Queue::bufferSize> sampleData;
-    
-    juce::dsp::FFT fft { Queue::order };
-    using WindowFun = juce::dsp::WindowingFunction<float>;
-    WindowFun windowFun { (size_t) fft.getSize(), WindowFun::hann };
-    std::array<float, 2 * Queue::bufferSize> spectrumData;
-};
-
 class HeaderComponent : public juce::Component
 {
     public:
-    HeaderComponent()
+    HeaderComponent(sketchbook::Context& ctx)
     {
         addAndMakeVisible(titleLabel);
         titleLabel.setFont(Style::getInstance()->themeFont.withHeight(26));
         titleLabel.setColour(juce::Label::ColourIds::textColourId, Style::getInstance()->themeColour);
         titleLabel.setJustificationType(juce::Justification::centred);
-        titleLabel.setText("Physical Modeling Sketchbook", juce::dontSendNotification);
+        titleLabel.setText(ctx.projectName, juce::dontSendNotification);
     }
     
     void resized() override
@@ -476,7 +243,8 @@ class MainPanelComponent : public juce::Component
 {
     public:
     MainPanelComponent(sketchbook::Context& _context)
-    : scopeComponent(*_context.audioBufferQueue)
+    : header(_context)
+    , scopeComponent(*_context.audioBufferQueue)
     , pages(_context)
     , footer(_context, &scopeComponent)
     , context(_context)

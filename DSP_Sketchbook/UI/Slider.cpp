@@ -8,8 +8,8 @@
   ==============================================================================
 */
 
-#include "StyledSlider.h"
-#include "PluginUi.h"
+#include "Slider.h"
+#include "PluginUIPages.h"
 #include "../Engine/Module.h"
 
 //TODO: remove access to the main editor

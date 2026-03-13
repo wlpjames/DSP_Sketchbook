@@ -10,7 +10,7 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
-#include "../UI/PluginUi.h"
+#include "../UI/PluginUIPages.h"
 
 //==============================================================================
 /**

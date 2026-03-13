@@ -60,4 +60,7 @@
 
 //UI
 #include "UI/LookAndFeel.cpp"
-#include "UI/StyledSlider.cpp"
+#include "UI/Slider.cpp"
+#include "UI/KeyboardWindow.cpp"
+#include "UI/ScopeComponent.cpp"
+#include "UI/PluginUIPages.h"

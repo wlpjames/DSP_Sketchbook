@@ -28,21 +28,23 @@ class DSPSketchbookAudioProcessor  : public juce::AudioProcessor
 public:
 
     //==============================================================================
-    DSPSketchbookAudioProcessor()
+    DSPSketchbookAudioProcessor(juce::String projectName = "")
     #ifndef JucePlugin_PreferredChannelConfigurations
-         : AudioProcessor (BusesProperties()
-                         #if ! JucePlugin_IsMidiEffect
-                          #if ! JucePlugin_IsSynth
-                           .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
-                          #endif
-                           .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
-                         #endif
-                           )
+     : AudioProcessor (BusesProperties()
+                     #if ! JucePlugin_IsMidiEffect
+                      #if ! JucePlugin_IsSynth
+                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
+                      #endif
+                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
+                     #endif
+                       )
     #endif
+    , m_projectName(projectName)
     {
         //TODO: this should change - not be a pointer
         context.audioBufferQueue = &audioBufferQueue;
         context.parameterData = audioEngine.getPluginData();
+        context.projectName = m_projectName;
         
         context.getLatestPlayingModuleByName = [this] (juce::String name)
         {
@@ -224,6 +226,7 @@ private:
     sketchbook::ScopeDataCollector<float> scopeDataCollector { audioBufferQueue };
     sketchbook::AppLookAndFeel lookAndFeel;
     sketchbook::AudioBufferQueue audioBufferQueue;
+    juce::String m_projectName;
     
 protected:
     friend class DSPSketchbookAudioProcessorEditor;
