@@ -93,9 +93,11 @@ public:
     }
     
     
-    void processSample(float* sample) override
+    void processSample(float* leftSample, float* rightSample) override
     {
-        *sample += std::sin(m_phase * juce::MathConstants<float>::twoPi);
+        float output = std::sin(m_phase * juce::MathConstants<float>::twoPi);
+        *leftSample  += output;
+        *rightSample += output;
         
         //increment and wrap
         m_phase += m_phaseInc;
@@ -118,9 +120,9 @@ private:
 };
 
 /// The processing chain can be defined here, the engine will instantiate multiple instances of each voice module and modulation source, one for each voice
-using VoiceModules = sketchbook::ModuleList<CustomModule, sketchbook::SamplerModule, sketchbook::SimpleOsc>;
+using VoiceModules = sketchbook::ModuleList<CustomModule, sketchbook::SamplerModule, sketchbook::SimpleOscModule>;
 
-using PostProscessEffects = sketchbook::ModuleList<sketchbook::ReverbModule, sketchbook::Delay>;
+using PostProscessEffects = sketchbook::ModuleList<sketchbook::ReverbModule, sketchbook::DelayModule>;
 
 using ModulationSources = sketchbook::ModuleList<sketchbook::EnvelopeModule,
                                                  sketchbook::EnvelopeModule,

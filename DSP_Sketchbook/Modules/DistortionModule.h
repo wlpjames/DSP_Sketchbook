@@ -12,11 +12,11 @@
 //==============================================================================
 
 //==============================================================================
-class Distortion : public sketchbook::Module
+class DistortionModule : public sketchbook::Module
 {
 public:
     //==============================================================================
-    Distortion()
+    DistortionModule()
     {
         auto& waveshaper = processorChain.template get<waveshaperIndex>();
         waveshaper.functionToUse = [] (float x)

@@ -86,9 +86,10 @@ juce::String EnvelopeModule::getName()
 void EnvelopeModule::process(juce::AudioBuffer<float>& inputBuffer)
 {
     for (int i = 0; i < inputBuffer.getNumSamples(); i++) {
-        float temp = 1;
-        processSample(&temp);
-        internalBuffer.data.getWritePointer(0)[i] = temp;
+        float tempL = 1.f;
+        float tempR = 1.f;
+        processSample(&tempL, &tempR);
+        internalBuffer.data.getWritePointer(0)[i] = tempL;
     }
     
     for (int i = 0; i < inputBuffer.getNumChannels(); i++)
@@ -197,7 +198,7 @@ void EnvelopeModule::setTargetRatioDR(double targetRatio)
     releaseBase = -targetRatioDR * (1.0 - releaseCoef);
 }
 
-void EnvelopeModule::processSample(float* sample)
+void EnvelopeModule::processSample(float* sampleL, float* sampleR)
 {
     switch (state) {
             
@@ -248,7 +249,8 @@ void EnvelopeModule::processSample(float* sample)
     }
     
     float modulationValue = currValue * sends * (noteVelocity * velocityMod + (1-velocityMod));
-    *sample *= modulationValue;
+    *sampleL *= modulationValue;
+    *sampleR *= modulationValue;
     internalBuffer.appendSingleSample(modulationValue);
 }
 

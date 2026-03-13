@@ -40,7 +40,7 @@ class EnvelopeModule : public sketchbook::Module
     
     void process(juce::AudioBuffer<float>& buffer) override;
     
-    void processSample(float* sample) override;
+    void processSample(float* leftSample, float* rightSample) override;
     
     void reset() override;
     

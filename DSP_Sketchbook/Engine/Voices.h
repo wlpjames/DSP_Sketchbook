@@ -211,7 +211,6 @@ class Voice : public juce::ValueTree::Listener
         }
         
         float freqHz = portaController.getNextPitch(numSamples);
-        //DBG(freqHz);
         
         //calculate any mapped parameters
         modulationSourceList.forEach([&] (auto& mod, auto)
@@ -221,8 +220,9 @@ class Voice : public juce::ValueTree::Listener
             //TODO: sample will be used
             for (int i = startSample; i < startSample + numSamples; i++)
             {
-                float dummyFloat = 1.f;
-                mod.processSample(&dummyFloat);
+                float dummyFloatL = 1.f;
+                float dummyFloatR = 1.f;
+                mod.processSample(&dummyFloatL, &dummyFloatR);
             }
             
             //modulation source parameters may themselves be modulated
@@ -235,7 +235,7 @@ class Voice : public juce::ValueTree::Listener
         for (int i = startSample; i < startSample + numSamples; i++)
         {
             adsrBuffer.getWritePointer(0)[i] = 1.f;
-            getVoiceADSR()->processSample(adsrBuffer.getWritePointer(0) + i);
+            getVoiceADSR()->processSample(adsrBuffer.getWritePointer(0) + i, tmpBuffer.getWritePointer(1) + i);
         }
         
         //TODO: stereo processing
@@ -249,7 +249,7 @@ class Voice : public juce::ValueTree::Listener
             
             for (int i = startSample; i < startSample + numSamples; i++)
             {
-                mod.processSample(tmpBuffer.getWritePointer(0)+i);
+                mod.processSample(tmpBuffer.getWritePointer(0) + i, tmpBuffer.getWritePointer(1) + i);
             }
             
             //if uses the voice env then apply the voice env

@@ -235,9 +235,9 @@ public:
     
     virtual void applyMidi(const juce::MidiMessage& message);
     
-    virtual void processSample(float* sample) {};
+    virtual void processSample(float* leftSample, float* rightSample) {};
     
-    virtual void process(juce::AudioBuffer<float>& buffer) {}
+    virtual void process(juce::AudioBuffer<float>& buffer);
     
     virtual void pitchUpdated(float newPitch) {}
     

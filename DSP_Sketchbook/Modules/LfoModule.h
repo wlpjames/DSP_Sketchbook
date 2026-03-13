@@ -62,16 +62,22 @@ class LfoModule : public sketchbook::Module
     {
     }
     
-    void processSample(float* sample) override
+    void processSample(float* leftSample, float* rightSample) override
     {
-        float lfoValue = depth * std::sin(phase);
-        *sample *= (1.f + lfoValue) / 2.f;  // Amplitude modulation
+        float lfoValue = (1.f + depth * std::sin(phase)) / 2.f;
         
+        //apply amplitude modulation to input
+        *leftSample  *= lfoValue;
+        *rightSample *= lfoValue;
+        
+        //increment phase
         phase += phaseIncrement;
         if (phase >= 2.0f * M_PI)
             phase -= 2.0f * M_PI;
         
-        internalBuffer.appendSingleSample(*sample);
+        //add to an internal buffer to be referenced by modulations
+        //necessary in modulation system
+        internalBuffer.appendSingleSample(*leftSample);
     }
     
     juce::String getName() override

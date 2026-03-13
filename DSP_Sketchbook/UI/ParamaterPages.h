@@ -1149,15 +1149,15 @@ class Pages  : public juce::Component
     , ctx(_ctx)
     {
         pageList.add(&parametersPage);
-        pageList.add(&modulationsPage);
-        pageList.add(&modulationSourcesPage);
         pageList.add(&fxPage);
+        pageList.add(&modulationSourcesPage);
+        pageList.add(&modulationsPage);
         
         addChildComponent(parametersPage);
-        addChildComponent(modulationsPage);
-        addChildComponent(modulationSourcesPage);
         addChildComponent(fxPage);
-        
+        addChildComponent(modulationSourcesPage);
+        addChildComponent(modulationsPage);
+
         //show first page on start
         showPage(0);
     }

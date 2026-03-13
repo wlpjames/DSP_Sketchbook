@@ -401,6 +401,14 @@ void Module::reset()
 
 void Module::applyMidi(const MidiMessage& message) {}
 
+void Module::process(juce::AudioBuffer<float>& buffer)
+{
+    //incase this function is not overloaded, make
+    //individual calls to the other process function
+    for(int i = 0; i < buffer.getNumSamples(); i++)
+        processSample(buffer.getWritePointer(0) + i, buffer.getWritePointer(1) + i);
+}
+
 bool Module::isModuleEnabled()
 {
     return moduleState[ParamIdents::ENABLED];

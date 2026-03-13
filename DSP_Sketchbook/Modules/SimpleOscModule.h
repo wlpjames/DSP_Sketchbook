@@ -14,13 +14,14 @@
 namespace sketchbook
 {
 
-class SimpleOsc : public sketchbook::Module
+class SimpleOscModule : public sketchbook::Module
 {
 public:
     //==============================================================================
-    SimpleOsc()
+    SimpleOscModule()
     {
         setVoiceMonitorType(adsr);
+        setIsDefaultEnabled(false);
         
         setModuleParameters({
             
@@ -56,27 +57,16 @@ public:
         }
     }
     
-    void noteOff(bool) override
-    {
-        return;
-    }
-    
-    void reset() override
-    {
-        return;
-    }
-    
     void pitchUpdated(float pitchHz) override
     {
         m_freqHz = pitchHz;
         m_phaseInc = 1.f / (m_samplerate / m_freqHz);
     }
     
-    void processSample(float* sample) override
+    void processSample(float* leftSample, float* rightSample) override
     {
+        //apply the phase distortion - the wave aproaches a saw wave
         float phase = m_phase;
-        
-        //apply the phase distortion - the wave aproaches a saw
         if (phase < m_phaseDistort)
         {
             phase = 0.25f * (phase / m_phaseDistort);
@@ -94,10 +84,13 @@ public:
         //apply the pulse distort to the phase i.e
         //after the pulse len phase is always 0
         phase = phase > m_pulseLen ? 0.f : phase / m_pulseLen;
-            
-        *sample += std::sin(phase * juce::MathConstants<float>::twoPi) * m_gain;
         
-        //increment and wrap
+        //add output to the buffer samples
+        float sample = std::sin(phase * juce::MathConstants<float>::twoPi) * m_gain;
+        *leftSample  += sample;
+        *rightSample += sample;
+        
+        //increment and wrap the phase
         m_phase += m_phaseInc;
         if (m_phase >= 1.f)
             m_phase -= 1.f;

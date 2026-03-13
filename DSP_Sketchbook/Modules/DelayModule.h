@@ -10,11 +10,11 @@
 namespace sketchbook
 {
 
-class Delay : public Module
+class DelayModule : public Module
 {
 public:
     
-    Delay()
+    DelayModule()
     {
         setIsDefaultEnabled(false);
         
@@ -60,7 +60,7 @@ public:
         });
     }
     
-    ~Delay()
+    ~DelayModule()
     {
         delete[] delayBufferL;
         delete[] delayBufferR;

@@ -134,6 +134,7 @@ public:
     SamplerModule()
     {
         setVoiceMonitorType(adsr);
+        setIsDefaultEnabled(false);
         
         m_audioFormatManager.registerBasicFormats();
         
@@ -179,9 +180,11 @@ public:
             //load initial audio sample from binary data
             juce::AudioBuffer<float> buffer;
             
-            if (auto* reader = m_audioFormatManager.createReaderFor(std::make_unique<juce::MemoryInputStream>(DSP_SKETCHBOOK_BINARY::grand_piano_C_wav,
-                                                                                                              DSP_SKETCHBOOK_BINARY::grand_piano_C_wavSize,
-                                                                                                              false)))
+            auto fileStream = std::make_unique<juce::MemoryInputStream>(DSP_SKETCHBOOK_BINARY::grand_piano_C_wav,
+                                                                        DSP_SKETCHBOOK_BINARY::grand_piano_C_wavSize,
+                                                                        false);
+            
+            if (auto* reader = m_audioFormatManager.createReaderFor(std::move(fileStream)))
             {
                 buffer.setSize(reader->numChannels, int(reader->lengthInSamples));
                 if (reader->read(&buffer, 0, int(reader->lengthInSamples), 0, true, true))
@@ -223,14 +226,19 @@ public:
         }
     }
     
-    void processSample(float* sample) override
+    void processSample(float* sampleLeft, float* sampleRight) override
     {
         if (!m_currSample) return;
         
+        //calc the sample
         float l = m_currSample->data.getWritePointer(0)[int(m_index)];
         float r = m_currSample->data.getWritePointer(0)[int(m_index)+1];
         float frac = m_index - int(m_index);
-        *sample += linearInterp(l, r, frac);
+        float sample = linearInterp(l, r, frac);
+        
+        //add to incloming buffer
+        *sampleLeft  += sample;
+        *sampleRight += sample;
         
         //no looping so just get rid of the sample
         m_index += m_increment;
