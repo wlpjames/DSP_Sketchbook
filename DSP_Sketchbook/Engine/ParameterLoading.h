@@ -64,9 +64,9 @@ namespace sketchbook
                 if (currParam.getType() == params::PARAMETER_FLOAT
                     || currParam.getType() == params::PARAMETER_INTEGER)
                 {
-                    float clampedValue = std::clamp(paramToLoad[params::VALUE],
-                                                    paramToLoad[params::MIN],
-                                                    paramToLoad[params::MAX]);
+                    float clampedValue = std::clamp(float(paramToLoad[params::VALUE]),
+                                                    float(paramToLoad[params::MIN]),
+                                                    float(paramToLoad[params::MAX]));
                     
                     currParam.setProperty(params::VALUE, clampedValue, &context.undoManager);
                 }
