@@ -76,10 +76,13 @@ private:
     juce::TextButton     m_settingsButton;
     juce::TextButton     m_keyboardButton;
     juce::DrawableButton m_oscDisplayButton;
+    juce::TextButton     m_saveStateButton;
+    juce::TextButton     m_loadStateButton;
     juce::Label          m_label;
     sketchbook::Context& context;
     std::unique_ptr<juce::Drawable> m_toggleImageOn;
     std::unique_ptr<juce::Drawable> m_toggleImageOff;
+    std::unique_ptr<juce::FileChooser> fileChooser;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FooterComponent)
 };
