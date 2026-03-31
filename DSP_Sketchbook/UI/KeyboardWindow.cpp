@@ -80,7 +80,7 @@ KeyboardWindow::KeyboardWindow(Context& ctx)
 
 void KeyboardWindow::closeButtonPressed()
 {
-    context.
+    //context.
 }
 
 } //end namespace sketchbook

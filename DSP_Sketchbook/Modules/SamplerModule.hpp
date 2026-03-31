@@ -136,7 +136,8 @@ class SamplerModule : public Module, public Module::SharedDataHolder<BandLimited
 {
 public:
     
-    SamplerModule()
+    SamplerModule(SharedData& sharedData)
+    : Module::SharedDataHolder<BandLimitedWaveTable>(sharedData)
     {
         setVoiceMonitorType(adsr);
         setIsDefaultEnabled(false);
@@ -158,14 +159,14 @@ public:
                     buffer.setSize(reader->numChannels, int(reader->lengthInSamples));
                     if (reader->read(&buffer, 0, int(reader->lengthInSamples), 0, true, true))
                     {
-                        getSharedData<BandLimitedWaveTable>()->setSample(filePath, buffer, reader->sampleRate);
+                        getSharedData().setSample(filePath, buffer, reader->sampleRate);
                     }
                     
                     delete reader;
                 }
             }, "Grand Piano"),
             
-            Parameter::Boolean("Resample To Pitch", [this] (bool value)
+            Parameter::Boolean("Resample To Pitch", [] (bool value)
                                {
                 DBG(juce::String("Resample To Pitch : ") + (value ? juce::String("True") : juce::String("False")));
             }, true),
@@ -180,9 +181,9 @@ public:
     void prepareToPlay(float samplerate, int buffersize) override
     {
         m_samplerate = samplerate;
-        getSharedData<BandLimitedWaveTable>()->setSampleRate(samplerate);
+        getSharedData().setSampleRate(samplerate);
         
-        if (!getSharedData<BandLimitedWaveTable>()->hasSample())
+        if (!getSharedData().hasSample())
         {
             //load initial audio sample from binary data
             juce::AudioBuffer<float> buffer;
@@ -196,7 +197,7 @@ public:
                 buffer.setSize(reader->numChannels, int(reader->lengthInSamples));
                 if (reader->read(&buffer, 0, int(reader->lengthInSamples), 0, true, true))
                 {
-                    getSharedData<BandLimitedWaveTable>()->setSample("Grand Piano", buffer, reader->sampleRate);
+                    getSharedData().setSample("Grand Piano", buffer, reader->sampleRate);
                 }
                 
                 delete reader;
@@ -210,8 +211,8 @@ public:
         {
             reset();
             m_midiNote = event.midiMessage.getNoteNumber();
-            getSharedData<BandLimitedWaveTable>()->swapOutRowsIfNeeded();
-            m_currSample = getSharedData<BandLimitedWaveTable>()->getRowForMidiNote(m_midiNote);
+            getSharedData().swapOutRowsIfNeeded();
+            m_currSample = getSharedData().getRowForMidiNote(m_midiNote);
         }
     }
     
@@ -269,7 +270,7 @@ private:
     
     void calcIncrement()
     {
-        m_increment = (m_freqHz / 440) * (getSharedData<BandLimitedWaveTable>()->getSampleRateOfSample() / m_samplerate);
+        m_increment = (m_freqHz / 440) * (getSharedData().getSampleRateOfSample() / m_samplerate);
     }
     
 private:

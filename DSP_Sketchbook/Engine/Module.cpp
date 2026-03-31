@@ -541,14 +541,6 @@ void Module::setModuleParameters(Array< std::shared_ptr< Module::ParameterIntern
     }
 }
 
-/*
- This can be used to set shared data across instaces in the same voice
-*/
-void Module::setSharedData(std::shared_ptr<SharedData> sharedDataObject)
-{
-    m_sharedData = sharedDataObject;
-}
-
 void Module::applyAllParameters()
 {
     for (auto p : moduleParameters)

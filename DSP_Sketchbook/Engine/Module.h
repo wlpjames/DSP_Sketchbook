@@ -50,24 +50,32 @@ class Module : public juce::ValueTree::Listener
 {
     public:
     
+    //------ ------ ------ ------ ------ ------
+    //------ ------ ------ ------ ------ ------
     class SharedData {};
-    class SharedDataHolderBase
-    {
-        public:
-        virtual ~SharedDataHolderBase() {}
-        virtual std::shared_ptr<SharedData> createSharedData() const = 0;
-    };
     
-    template <typename SharedDataType>
-    class SharedDataHolder : public SharedDataHolderBase
+    template <typename SDType>
+    class SharedDataHolder
     {
         public:
+        using SharedDataType = SDType;
+        
+        SharedDataHolder(SharedData& sharedDataInstance)
+        : sharedData(static_cast<SharedDataType&>(sharedDataInstance))
+        {}
+        
         virtual ~SharedDataHolder() {}
-        std::shared_ptr<SharedData> createSharedData() const override
+        
+        SharedDataType& getSharedData()
         {
-            return std::make_shared<SharedDataType>();
+            return sharedData;
         }
+        
+        SharedDataType& sharedData;
     };
+
+    //------ ------ ------ ------ ------ ------
+    //------ ------ ------ ------ ------ ------
     
     enum VoiceMonitorType
     {
@@ -235,7 +243,7 @@ public:
     
     virtual void applyMidi(const juce::MidiMessage& message);
     
-    virtual void processSample(float* leftSample, float* rightSample) {};
+    virtual void processSample(float* leftSample, float* rightSample) {}
     
     virtual void process(juce::AudioBuffer<float>& buffer);
     
@@ -336,20 +344,6 @@ public:
     
     void setModuleParameters(juce::Array<std::shared_ptr<Module::ParameterInternal>> parameters);
     
-    /*
-     This can be used to set shared data across instaces in the same voice
-    */
-    void setSharedData(std::shared_ptr<SharedData> sharedDataObject);
-    
-    /*
-     returns an instance of the shared data that is used across voices for this module
-    */
-    template<typename SharedDataType>
-    std::shared_ptr<SharedDataType> getSharedData()
-    {
-        return std::static_pointer_cast<SharedDataType>(m_sharedData);
-    }
-    
     void applyAllParameters();
     
     void setModulationSources(juce::Array<Module*> modSources);
@@ -373,47 +367,109 @@ public:
     std::shared_ptr<SharedData> m_sharedData;
 };
 
+struct SharedModuleDataRegistry
+{
+    struct Entry
+    {
+        juce::String moduleName;
+        int index;
+        std::shared_ptr<Module::SharedData> data;
+    };
+    juce::Array<Entry> entries;
+    
+    void addEntry(juce::String moduleName, int index, std::shared_ptr<Module::SharedData> data)
+    {
+        entries.add({moduleName, index, data});
+    }
+    
+    std::shared_ptr<Module::SharedData> getData(juce::String moduleName, int index)
+    {
+        for (auto& entry : entries)
+            if (entry.moduleName == moduleName && entry.index == index)
+                return entry.data;
+            
+        return nullptr;
+    }
+};
+
+// ─────────────────────────────────────────────
+// Type trait: does T inherit ModuleSharedData<anything>?
+// We detect this by checking if T::SharedDataType exists
+// (injected by the base class)
+// ─────────────────────────────────────────────
+template<typename T, typename = void>
+struct has_shared_data : std::false_type {};
+
+template<typename T>
+struct has_shared_data<T, std::void_t<typename T::SharedDataType>>
+    : std::true_type {};
+
+template<typename T>
+inline constexpr bool has_shared_data_v = has_shared_data<T>::value;
+
 //==============================================================================
 template <typename... Modules>
 class ModuleList
 {
-    std::tuple<Modules...> modules;
+    std::tuple<std::unique_ptr<Modules>...> modules;
     
-    public:
+public:
     
+    ModuleList(SharedModuleDataRegistry& sharedData)
+        : ModuleList(sharedData, std::index_sequence_for<Modules...>{})
+    {
+    }
+
     template <typename Fn>
     constexpr void forEach(Fn&& fn)
     {
         forEachInTuple(fn, modules);
     }
-    
+
     juce::Array<Module*> toArray()
     {
         juce::Array<Module*> result;
-        
-        forEach([&] (auto& mod, auto)
-                {
-            result.add(&mod);
-        });
-        
+        forEach([&](auto& mod, auto ix) { result.add(&mod); });
         return result;
     }
-    
-    private:
-    
-    template <typename Fn, typename Tuple, size_t... Ix>
-    static constexpr void forEachInTuple (Fn&& fn, Tuple&& tuple, std::index_sequence<Ix...>)
+
+private:
+
+    template<size_t... Ix>
+    ModuleList(SharedModuleDataRegistry& sharedData, std::index_sequence<Ix...>)
+        : modules(constructModule<Modules, Ix>(sharedData)...)
     {
-        (fn (std::get<Ix> (tuple), std::integral_constant<size_t, Ix>()), ...);
     }
-    
+
+    template<typename T, size_t Ix>
+    static std::unique_ptr<T> constructModule(SharedModuleDataRegistry& sharedData)
+    {
+        if constexpr (has_shared_data_v<T>)
+        {
+            auto data = sharedData.getData(typeid(T).name(), Ix);
+            jassert(data != nullptr);
+            auto typed = std::static_pointer_cast<typename T::SharedDataType>(data);
+            return std::make_unique<T>(*typed);
+        }
+        else
+        {
+            return std::make_unique<T>();
+        }
+    }
+
+    template <typename Fn, typename Tuple, size_t... Ix>
+    static constexpr void forEachInTuple(Fn&& fn, Tuple&& tuple, std::index_sequence<Ix...>)
+    {
+        (fn(*std::get<Ix>(tuple), std::integral_constant<size_t, Ix>()), ...);
+    }
+
     template <typename T>
     using TupleIndexSequence = std::make_index_sequence<std::tuple_size_v<std::remove_cv_t<std::remove_reference_t<T>>>>;
-    
+
     template <typename Fn, typename Tuple>
-    static constexpr void forEachInTuple (Fn&& fn, Tuple&& tuple)
+    static constexpr void forEachInTuple(Fn&& fn, Tuple&& tuple)
     {
-        forEachInTuple (std::forward<Fn> (fn), std::forward<Tuple> (tuple), TupleIndexSequence<Tuple>{});
+        forEachInTuple(std::forward<Fn>(fn), std::forward<Tuple>(tuple), TupleIndexSequence<Tuple>{});
     }
 };
 
@@ -424,4 +480,48 @@ struct is_module_list : std::false_type {};
 template<typename... Modules>
 struct is_module_list<ModuleList<Modules...>> : std::true_type {};
 
+template <typename VoiceModules, typename FxModules, typename ModulationSources>
+struct SharedModuleDataColector
+{
+public:
+    SharedModuleDataColector()
+    {
+        checkModulesForSharedData(static_cast<VoiceModules*>(nullptr));
+        checkModulesForSharedData(static_cast<FxModules*>(nullptr));
+        checkModulesForSharedData(static_cast<ModulationSources*>(nullptr));
+    }
+    
+    SharedModuleDataRegistry& getSharedDataRegister()
+    {
+        return sharedDataRegister;
+    }
+    
+private:
+    
+    SharedModuleDataRegistry sharedDataRegister;
+    
+    template<typename... Modules>
+    void checkModulesForSharedData(ModuleList<Modules...>*)
+    {
+        int index = 0;
+        (checkModuleForSharedData<Modules>(index++), ...);
+    }
+    
+    template<typename T>
+    void checkModuleForSharedData(int index)
+    {
+        if constexpr (has_shared_data_v<T>)
+        {
+            std::cout << typeid(T).name() << " has SharedData: "
+                      << typeid(typename T::SharedDataType).name() << "\n";
+            
+            //instantiate this shared data here
+            auto data = std::make_shared<typename T::SharedDataType>();
+            sharedDataRegister.addEntry(typeid(T).name(), index, data);
+            
+        } else {
+            std::cout << typeid(T).name() << " no SharedData\n";
+        }
+    }
+};
 } //end namespace sketchbook

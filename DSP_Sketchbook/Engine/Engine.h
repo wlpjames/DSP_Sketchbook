@@ -33,41 +33,25 @@ static void assignInstanceIds(juce::Array<Module*> modules)
     }
 }
 
+//------------------------------------------------------------------
+//------------------------------------------------------------------
+
 /*
  template <typename... Ts>
  struct TypeList {};
  */
 template <typename VoiceModules, typename FxModules = ModuleList<>, typename ModulationSources = ModuleList<LfoModule, LfoModule, EnvelopeModule, EnvelopeModule>>
-class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationSources>
+class AudioEngine
+: public sketchbook::SharedModuleDataColector<VoiceModules, FxModules, ModulationSources>
+, public sketchbook::VoiceController<VoiceModules, ModulationSources>
 {
     public:
-    
-    struct ModuleSharedData
-    {
-        struct Entry
-        {
-            juce::String moduleName;
-            std::shared_ptr<Module::SharedData> data;
-        };
-        juce::Array<Entry> entries;
-        
-        void addEntry(juce::String moduleName, std::shared_ptr<Module::SharedData> data)
-        {
-            entries.add({moduleName, data});
-        }
-        
-        std::shared_ptr<Module::SharedData> getData(juce::String moduleName)
-        {
-            for (auto& entry : entries)
-                if (entry.moduleName == moduleName)
-                    return entry.data;
-                
-            return nullptr;
-        }
-    };
+    using sharedData = SharedModuleDataColector<VoiceModules, FxModules, ModulationSources>;
     
     //==============================================================================
     AudioEngine()
+    : sketchbook::VoiceController<VoiceModules, ModulationSources>(sharedData::getSharedDataRegister())
+    , fxChain(sharedData::getSharedDataRegister())
     {
         static_assert(is_module_list<FxModules>::value, "FxModules must be an instance of ModuleList<Modules...>");
         static_assert(is_module_list<VoiceModules>::value, "VoiceModules must be an instance of ModuleList<Modules...>");
@@ -87,19 +71,13 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
         sketchbook::VoiceController<VoiceModules, ModulationSources>::setData(pluginData);
         
         //create a temporary voiceModules object in order to grab the module state data in the structure setup
-        VoiceModules tmpVoiceModules;
-        ModulationSources tmpModSources;
+        VoiceModules tmpVoiceModules(sharedData::getSharedDataRegister());
+        ModulationSources tmpModSources(sharedData::getSharedDataRegister());
         setInstanceIdsForAll(tmpVoiceModules, tmpModSources, fxChain);
-        ModuleSharedData moduleSharedData;
         
         tmpVoiceModules.forEach([&] (Module& mod, auto)
         {
             pluginData.getChildWithName(Module::ParamIdents::MODULES).addChild(mod.getModuleState(), -1, nullptr);
-            
-            if (auto sdh = dynamic_cast<Module::SharedDataHolderBase*>(&mod))
-            {
-                moduleSharedData.addEntry(mod.getName(), sdh->createSharedData());
-            }
         });
         
         //do the same for modulation sources
@@ -114,10 +92,6 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
             if (auto v = sketchbook::VoiceController<VoiceModules, ModulationSources>::getVoice(i))
             {
                 v->setData(pluginData);
-                v->forEachModule([&] (Module& mod)
-                {
-                    mod.setSharedData(moduleSharedData.getData(mod.getName()));
-                });
             }
         }
         
@@ -127,7 +101,7 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
         });
     }
     
-    virtual ~AudioEngine()
+    virtual ~AudioEngine() override
     {
         
     }
@@ -217,7 +191,7 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
     ///  an adsr envelope
     bool isVoiceEnvelopeNeeded()
     {
-        VoiceModules tmpVoiceModules;
+        VoiceModules tmpVoiceModules(sharedData::getSharedDataRegister());
         bool output = false;
         tmpVoiceModules.forEach([&] (auto& mod, auto)
         {
@@ -228,6 +202,7 @@ class AudioEngine : public sketchbook::VoiceController<VoiceModules, ModulationS
     }
     
     private:
+    
     juce::ValueTree pluginData;
     FxModules fxChain;
 };

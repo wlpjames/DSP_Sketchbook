@@ -42,7 +42,7 @@ public:
     
 private:
     WindowContent windowContent;
-    Context context;
+    Context& context;
 };
 
 } //end namespace KeyboardWindow

@@ -116,7 +116,10 @@ class Voice : public juce::ValueTree::Listener
 {
     public:
     
-    Voice()
+    Voice(SharedModuleDataRegistry& moduleSharedData)
+    : m_moduleSharedData(moduleSharedData)
+    , moduleList(moduleSharedData)
+    , modulationSourceList(moduleSharedData)
     {
         static_assert(is_module_list<Modules>::value,    "Modules must be an instance of ModuleList<...>");
         static_assert(is_module_list<ModSources>::value, "ModSources must be an instance of ModuleList<...>");
@@ -403,6 +406,7 @@ class Voice : public juce::ValueTree::Listener
     juce::dsp::AudioBlock<float> tempBlock;
     juce::AudioBuffer<float> tmpBuffer;
     
+    SharedModuleDataRegistry& m_moduleSharedData;
     Modules moduleList;
     ModSources modulationSourceList;
     EnvelopeModule voiceEnvelope;
@@ -434,11 +438,11 @@ class VoiceController : public juce::ValueTree::Listener
     
 public:
     
-    VoiceController()
+    VoiceController(SharedModuleDataRegistry& moduleSharedData)
     {
         for (int i = 0; i < numVoices; i++)
         {
-            voices.add(std::make_shared<VoiceType>());
+            voices.add(std::make_shared<VoiceType>(moduleSharedData));
         }
     }
     
