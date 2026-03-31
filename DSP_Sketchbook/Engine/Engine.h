@@ -33,12 +33,53 @@ static void assignInstanceIds(juce::Array<Module*> modules)
     }
 }
 
-//------------------------------------------------------------------
-//------------------------------------------------------------------
+template <const char* BinaryData, const int BinaryDataSize>
+class Preset
+{
+public:
+    Preset()
+    {
+        // Try XML first
+        if (auto xml = juce::parseXML (juce::String::fromUTF8 (BinaryData, BinaryDataSize)))
+        {
+            presetData = juce::ValueTree::fromXml (*xml);
+            if (presetData.isValid())
+                return;
+        }
 
+        // Fall back to binary ValueTree format
+        juce::MemoryInputStream stream (BinaryData, static_cast<size_t> (BinaryDataSize), false);
+        presetData = juce::ValueTree::readFromStream(stream);
+    }
+    
+    juce::ValueTree presetData;
+};
+
+template <typename... Presets>
+class PresetList
+{
+    std::tuple<Presets...> presets;
+    
+    template <typename Fn, typename Tuple, size_t... Ix>
+    static constexpr void forEachInTuple(Fn&& fn, Tuple&& tuple, std::index_sequence<Ix...>)
+    {
+        (fn(*std::get<Ix>(tuple), std::integral_constant<size_t, Ix>()), ...);
+    }
+
+    template <typename T>
+    using TupleIndexSequence = std::make_index_sequence<std::tuple_size_v<std::remove_cv_t<std::remove_reference_t<T>>>>;
+
+    template <typename Fn, typename Tuple>
+    static constexpr void forEachInTuple(Fn&& fn, Tuple&& tuple)
+    {
+        forEachInTuple(std::forward<Fn>(fn), std::forward<Tuple>(tuple), TupleIndexSequence<Tuple>{});
+    }
+};
+
+//------------------------------------------------------------------
+//------------------------------------------------------------------
 /*
- template <typename... Ts>
- struct TypeList {};
+
  */
 template <typename VoiceModules, typename FxModules = ModuleList<>, typename ModulationSources = ModuleList<LfoModule, LfoModule, EnvelopeModule, EnvelopeModule>>
 class AudioEngine
