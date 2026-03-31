@@ -38,9 +38,11 @@ public:
     };
     
     KeyboardWindow(Context& ctx);
+    void closeButtonPressed() override;
     
 private:
     WindowContent windowContent;
+    Context context;
 };
 
 } //end namespace KeyboardWindow

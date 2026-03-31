@@ -60,4 +60,4 @@
 #include "UI/Slider.cpp"
 #include "UI/KeyboardWindow.cpp"
 #include "UI/ScopeComponent.cpp"
-#include "UI/PluginUIPages.h"
+#include "UI/PluginUIPages.cpp"

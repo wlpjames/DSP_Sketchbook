@@ -26,6 +26,11 @@ public:
         
     }
     
+    ~BandLimitedWaveTable()
+    {
+        return;
+    }
+    
     void setSample(juce::String ident, juce::AudioBuffer<float>& sample, float sampleRateOfSample)
     {
         if (m_currSampleIdent != ident)
@@ -155,6 +160,8 @@ public:
                     {
                         getSharedData<BandLimitedWaveTable>()->setSample(filePath, buffer, reader->sampleRate);
                     }
+                    
+                    delete reader;
                 }
             }, "Grand Piano"),
             
@@ -167,7 +174,7 @@ public:
     
     ~SamplerModule()
     {
-        
+        return;
     }
     
     void prepareToPlay(float samplerate, int buffersize) override
@@ -191,6 +198,8 @@ public:
                 {
                     getSharedData<BandLimitedWaveTable>()->setSample("Grand Piano", buffer, reader->sampleRate);
                 }
+                
+                delete reader;
             }
         }
     }

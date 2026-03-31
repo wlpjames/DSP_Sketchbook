@@ -563,7 +563,6 @@ private:
     
     void doNoteOn(juce::MidiMessage message)
     {
-        
         auto glideFromNote = monoNoteHistory.size() > 0 ? monoNoteHistory.back() : juce::MidiMessage();
         monoNoteHistory.push_back(message);
         

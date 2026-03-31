@@ -55,6 +55,7 @@ public:
 
     ~DSPSketchbookAudioProcessor()
     {
+        sketchbook::Style::deleteInstance();
     }
 
     //==============================================================================

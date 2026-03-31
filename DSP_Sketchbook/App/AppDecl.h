@@ -5,4 +5,3 @@ juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()                        
 {                                                                                                           \
     return new DSPSketchbookAudioProcessor<VoiceModules, EffectsModules, ModulationSourceModules>(Name);    \
 }                                                                                                           \
-

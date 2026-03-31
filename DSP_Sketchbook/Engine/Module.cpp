@@ -537,7 +537,7 @@ void Module::setModuleParameters(Array< std::shared_ptr< Module::ParameterIntern
     modifiedParameters.clear();
     for (auto p : parameters)
     {
-        modifiedParameters.add(std::shared_ptr<ModifiedParameter>(new ModifiedParameter(p)));
+        modifiedParameters.add(std::make_shared<ModifiedParameter>(p));
     }
 }
 

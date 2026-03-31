@@ -67,6 +67,7 @@ KeyboardWindow::KeyboardWindow(Context& ctx)
                        Style::getInstance()->backgroundColour,
                        juce::DocumentWindow::closeButton)
 , windowContent(ctx)
+, context(ctx)
 {
     
     setContentOwned(&windowContent, true);
@@ -75,6 +76,11 @@ KeyboardWindow::KeyboardWindow(Context& ctx)
     toFront(true);
     setVisible(true);
     setSize(500, 175);
+}
+
+void KeyboardWindow::closeButtonPressed()
+{
+    context.
 }
 
 } //end namespace sketchbook

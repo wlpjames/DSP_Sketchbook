@@ -28,7 +28,7 @@ void HeaderComponent::resized()
 //---------------------------------------------------------------
 //---------------------------------------------------------------
 
-void PageMenu::MenuButton::paint(juce::Graphics& g) override
+void PageMenu::MenuButton::paint(juce::Graphics& g)
 {
     //just draw text
     g.setColour(Style::getInstance()->themeColour);
@@ -194,7 +194,7 @@ FooterComponent::FooterComponent(Context& ctx, ScopeComponent* scopeComp)
     m_label.setColour(juce::Label::ColourIds::textColourId, Style::getInstance()->themeColour);
 }
 
-void FooterComponent::resized() override
+void FooterComponent::resized()
 {
     auto area = getLocalBounds();
     int buttonWidth = area.getWidth() / 6.5;
