@@ -127,9 +127,15 @@ using ModulationSources = sketchbook::ModuleList<sketchbook::EnvelopeModule,
                                                  sketchbook::EnvelopeModule,
                                                  sketchbook::LfoModule,
                                                  sketchbook::LfoModule>;
+
+using Presets = sketchbook::PresetList</*sketchbook::Preset<binarydata, binarydatasize>,
+                                       sketchbook::Preset<binarydata, binarydatasize>,
+                                       sketchbook::Preset<binarydata, binarydatasize>*/>;
+
 /// Decare the app here!
 /// The first argument is the title that will be displayed at the top of the UI
 SKETCHBOOK_DECLARE_APP("Sketchbook Template",
                        VoiceModules,         /* list of modules in voice    */
                        PostProscessEffects,  /* list of post process effects*/
-                       ModulationSources)    /* list of modulation sources  */
+                       ModulationSources,     /* list of modulation sources  */
+                       Presets)

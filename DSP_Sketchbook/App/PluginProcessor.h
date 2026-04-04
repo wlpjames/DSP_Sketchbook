@@ -21,7 +21,8 @@
 */
 template <typename VoiceModules,
           typename FxModules,
-          typename ModulationSources>
+          typename ModulationSources,
+          typename Presets>
 class DSPSketchbookAudioProcessor  : public juce::AudioProcessor
 {
 public:
