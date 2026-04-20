@@ -55,11 +55,6 @@
 #include "Modules/SimpleOscModule.h"
 #include "Modules/SamplerModule.hpp"
 
-//APP
-#include "App/AppDecl.h"
-#include "App/PluginProcessor.h"
-#include "App/PluginEditor.h"
-
 //UI
 #include "UI/Slider.h"
 #include "UI/LookAndFeel.h"
@@ -67,6 +62,11 @@
 #include "UI/KeyboardWindow.h"
 #include "UI/ScopeComponent.h"
 #include "UI/PluginUIPages.h"
+
+//APP
+#include "App/AppDecl.h"
+#include "App/PluginProcessor.h"
+#include "App/PluginEditor.h"
 
 
 

@@ -72,8 +72,8 @@ class LfoModule : public sketchbook::Module
         
         //increment phase
         phase += phaseIncrement;
-        if (phase >= 2.0f * M_PI)
-            phase -= 2.0f * M_PI;
+        if (phase >= 2.0f * juce::MathConstants<float>::pi)
+            phase -= 2.0f * juce::MathConstants<float>::pi;
         
         //add to an internal buffer to be referenced by modulations
         //necessary in modulation system
@@ -89,7 +89,7 @@ class LfoModule : public sketchbook::Module
     
     void updatePhaseIncrement()
     {
-        phaseIncrement = 2.0f * M_PI * (frequency / sampleRate);
+        phaseIncrement = 2.0f * juce::MathConstants<float>::pi * (frequency / sampleRate);
     }
     
     float frequency;

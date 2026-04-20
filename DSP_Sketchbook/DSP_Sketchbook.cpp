@@ -52,12 +52,12 @@
 #include "Modules/DragonFlyReverb/freeverb/zrev.cpp"
 #include "Modules/DragonFlyReverb/freeverb/zrev2.cpp"
 
-//App
-#include "App/PluginEditor.cpp"
-
 //UI
 #include "UI/LookAndFeel.cpp"
 #include "UI/Slider.cpp"
 #include "UI/KeyboardWindow.cpp"
 #include "UI/ScopeComponent.cpp"
 #include "UI/PluginUIPages.cpp"
+
+//App
+#include "App/PluginEditor.cpp"

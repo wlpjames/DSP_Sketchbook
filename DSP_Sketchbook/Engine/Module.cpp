@@ -104,15 +104,15 @@ AudioBuffer<float> RingBuffer::getBuffer()
 Module::ParameterInternal::ParameterInternal(juce::String name, std::function<void(float)> callback, float _initialValue, float _min, float _max)
 : parameterValue(_initialValue)
 , paramName(name)
-, min(_min)
-, max(_max)
+, m_min(_min)
+, m_max(_max)
 , paramChangedCallback(callback)
 {
     data = ValueTree(ParamIdents::PARAMETER_FLOAT)
         .setProperty(ParamIdents::PARAMETER_NAME, name, nullptr)
         .setProperty(ParamIdents::VALUE, parameterValue, nullptr)
-        .setProperty(ParamIdents::MIN, min, nullptr)
-        .setProperty(ParamIdents::MAX, max, nullptr);
+        .setProperty(ParamIdents::MIN, m_min, nullptr)
+        .setProperty(ParamIdents::MAX, m_max, nullptr);
     
     if (data.isValid())
         data.addListener(this);
@@ -126,15 +126,15 @@ Module::ParameterInternal::ParameterInternal(juce::String name, std::function<vo
 Module::ParameterInternal::ParameterInternal(String name, std::function<void(int)> callback, int initialValue, int _min, int _max)
 : parameterValue(initialValue)
 , paramName(name)
-, min(_min)
-, max(_max)
+, m_min(_min)
+, m_max(_max)
 , paramChangedCallback(callback)
 {
     data = ValueTree(ParamIdents::PARAMETER_INTEGER)
         .setProperty(ParamIdents::PARAMETER_NAME, name, nullptr)
         .setProperty(ParamIdents::VALUE, parameterValue, nullptr)
-        .setProperty(ParamIdents::MIN, min, nullptr)
-        .setProperty(ParamIdents::MAX, max, nullptr);
+        .setProperty(ParamIdents::MIN, m_min, nullptr)
+        .setProperty(ParamIdents::MAX, m_max, nullptr);
     
     if (data.isValid())
         data.addListener(this);
@@ -245,17 +245,17 @@ void Module::ParameterInternal::setValueTree(ValueTree newData)
 
 float Module::ParameterInternal::getMinValue()
 {
-    return min;
+    return m_min;
 }
 
 float Module::ParameterInternal::getMaxValue()
 {
-    return max;
+    return m_max;
 }
 
 float Module::ParameterInternal::getRange()
 {
-    return float(max) - float(min);
+    return float(m_max) - float(m_min);
 }
 
 Module::ModifiedParameter::Mapping::Mapping(ValueTree _data,

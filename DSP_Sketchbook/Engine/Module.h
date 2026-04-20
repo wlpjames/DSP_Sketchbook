@@ -89,8 +89,8 @@ class Module : public juce::ValueTree::Listener
         juce::String paramName;
         juce::ValueTree data;
         
-        juce::var min;
-        juce::var max;
+        juce::var m_min;
+        juce::var m_max;
         
         public:
         

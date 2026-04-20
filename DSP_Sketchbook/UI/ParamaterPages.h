@@ -9,7 +9,6 @@
 */
 
 #pragma once
-#include <JuceHeader.h>
 #include "Slider.h"
 
 //==============================================================================
@@ -587,13 +586,15 @@ class ModuleGroupPage : public ExpandableListBox, public juce::ValueTree::Listen
                     selectedFileLabel.setText(data[Module::ParamIdents::VALUE], juce::dontSendNotification);
                     browserButton.setButtonText("Open File");
                     browserButton.setClickingTogglesState(false);
-                    browserButton.onClick = [this] ()
+                    browserButton.onClick = [sp = SafePointer<ParameterRow>(this)] ()
                     {
+                        if (!sp) return;
+
                         //allow user to choose file
-                        fileChooser = std::make_unique<juce::FileChooser>("Open File", juce::File::getSpecialLocation(juce::File::userDocumentsDirectory));
+                        sp->fileChooser = std::make_unique<juce::FileChooser>("Open File", juce::File::getSpecialLocation(juce::File::userDocumentsDirectory));
                         
                         auto folderChooserFlags = juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::openMode;
-                        fileChooser->launchAsync (folderChooserFlags, [sp = SafePointer<ParameterRow>(this)] (const juce::FileChooser& chooser)
+                        sp->fileChooser->launchAsync (folderChooserFlags, [sp] (const juce::FileChooser& chooser)
                         {
                             if (!sp) return;
                             
