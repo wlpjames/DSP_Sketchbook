@@ -273,6 +273,20 @@ void FooterComponent::resized()
 //---------------------------------------------------------------
 //---------------------------------------------------------------
 //---------------------------------------------------------------
+static bool hasModulationSources(juce::ValueTree data)
+{
+    return data.getRoot().getChildWithName(Module::ParamIdents::MODULATION_SOURCES).getNumChildren() > 0;
+}
+
+static bool hasEffectsModules(juce::ValueTree data)
+{
+    return data.getRoot().getChildWithName(Module::ParamIdents::EFFECT_FILTERS).getNumChildren() > 0;
+}
+
+static bool hasVoiceModules(juce::ValueTree data)
+{
+    return data.getRoot().getChildWithName(Module::ParamIdents::MODULES).getNumChildren() > 0;
+}
 
 MainPanelComponent::MainPanelComponent(sketchbook::Context& _context)
 : header(_context)
@@ -288,15 +302,26 @@ MainPanelComponent::MainPanelComponent(sketchbook::Context& _context)
     addAndMakeVisible(pages);
     pages.setData(context.parameterData);
     
+    //construct page names
+    juce::StringArray pageOptions;
+    if (hasVoiceModules(_context.parameterData))
+        pageOptions.add("VOICE");
+    if (hasEffectsModules(_context.parameterData))
+        pageOptions.add("EFFECTS");
+    if (hasModulationSources(_context.parameterData))
+        pageOptions.addArray({"MOD SOURCES", "MATRIX"});
+    
     addAndMakeVisible(pageMenu);
-    pageMenu.onSelectionFunc = [sp = SafePointer<MainPanelComponent>(this)] (int index)
+    pageMenu.onSelectionFunc = [sp = SafePointer<MainPanelComponent>(this), pageOptions] (int index)
     {
         if (!sp)
             return;
         
-        sp->pages.showPage(index);
+        //clumsy remapping of available page names to the full page names
+        const juce::StringArray fullOptionsList = {"VOICE", "EFFECTS", "MOD SOURCES", "MATRIX"};
+        sp->pages.showPage(fullOptionsList.indexOf(pageOptions[index]));
     };
-    pageMenu.addOptions({"VOICE", "EFFECTS", "MOD SOURCES", "MATRIX"});
+    pageMenu.addOptions(pageOptions);
     pageMenu.select(0);
     
     addAndMakeVisible(header);
