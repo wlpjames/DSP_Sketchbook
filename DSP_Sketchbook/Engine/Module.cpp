@@ -35,7 +35,7 @@ const Identifier Module::ParamIdents::MAX                   = Identifier("MAX");
 const Identifier Module::ParamIdents::CENTER_SKEW           = Identifier("CENTER_SKEW");
 const Identifier Module::ParamIdents::ENABLED               = Identifier("ENABLED");
 const Identifier Module::ParamIdents::PARAMETER_OPTIONS     = Identifier("OPTIONS");
-const Identifier Module::ParamIdents::UI_ENABLED            = Identifier("UI_ENABLED");
+const Identifier Module::ParamIdents::UI_ENABLED            = Identifier("UI_ENABLED"); //used to dissable and block parameters in the UI
 
 //MODULATIONS
 const Identifier Module::ParamIdents::MODULATION            = Identifier("MODULEATION");
@@ -52,6 +52,7 @@ const Identifier Module::ParamIdents::EFFECT_FILTERS        = Identifier("EFFECT
 void RingBuffer::setSize(int bufferLen)
 {
     data.setSize(1, bufferLen);
+    data.clear();
     len = bufferLen;
     
     if (writePoint > bufferLen)

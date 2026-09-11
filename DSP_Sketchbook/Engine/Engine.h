@@ -196,7 +196,7 @@ class AudioEngine
     }
     
     /**
-     Will search for a module by name - in the latest playing voice or in the fxChain
+     Will search for a module by name - in the latest playing voice or in the fxChain -- returns nullptr if has not audio throughput
      */
     Module* getLatestPlayingModuleByName(juce::String name)
     {
