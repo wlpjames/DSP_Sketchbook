@@ -12,6 +12,7 @@
 #include "../UI/LookAndFeel.h"
 #include "PluginEditor.h"
 
+#define NOMINMAX
 #if JUCE_WINDOWS
 #include "dwmapi.h"
 #endif
