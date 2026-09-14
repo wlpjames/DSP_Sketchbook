@@ -184,9 +184,19 @@ class AudioEngine
     {
         sketchbook::VoiceController<VoiceModules, ModulationSources>::prepare(samplerate, blockSize);
         
-        fxChain.forEach([&] (auto& mod, auto)
+        fxChain.forEach([&] (Module& mod, auto)
         {
             mod.prepareToPlay(samplerate, blockSize);
+        });
+    }
+    
+    void prepare (float samplerate, int blockSize, const juce::AudioProcessor::BusesLayout& busesLayout) noexcept override
+    {
+        sketchbook::VoiceController<VoiceModules, ModulationSources>::prepare(samplerate, blockSize, busesLayout);
+        
+        fxChain.forEach([&] (Module& mod, auto)
+        {
+            mod.prepareToPlay(samplerate, blockSize, busesLayout);
         });
     }
     

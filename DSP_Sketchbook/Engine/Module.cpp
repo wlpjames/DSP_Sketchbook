@@ -407,6 +407,13 @@ Module::~Module() {}
 
 void Module::prepareToPlay(float samplerate, int buffersize) {}
 
+void Module::prepareToPlay(float samplerate, int buffersize, const juce::AudioProcessor::BusesLayout& busesLayout)
+{
+    //default to simpler function
+    ignoreUnused(busesLayout);
+    prepareToPlay(samplerate, buffersize);
+}
+
 void Module::noteOn(const NoteOnEvent& event) {}
 
 void Module::noteOff(bool) {}

@@ -151,6 +151,22 @@ class Voice : public juce::ValueTree::Listener
         portaController.prepare(samplerate);
     }
     
+    void prepare (float samplerate, int buffersize, const juce::AudioProcessor::BusesLayout& bussesLayout)
+    {
+        moduleList.forEach([&] (auto& mod, auto)
+        {
+            mod.prepareToPlay(samplerate, buffersize, bussesLayout);
+        });
+        
+        modulationSourceList.forEach([&] (auto& mod, auto)
+        {
+            mod.prepareToPlay(samplerate, buffersize);
+        });
+        
+        voiceEnvelope.prepareToPlay(samplerate, buffersize);
+        portaController.prepare(samplerate);
+    }
+    
     //==============================================================================
     void noteOn(const NoteOnEvent& event)
     {
@@ -466,11 +482,19 @@ public:
     
     virtual ~VoiceController() {}
     
-    virtual void prepare(float sampleRate, int bufferSize)
+    virtual void prepare(float sampleRate, int buffersize)
     {
         for (auto voice : voices )
         {
-            voice->prepare(sampleRate, bufferSize);
+            voice->prepare(sampleRate, buffersize);
+        }
+    }
+    
+    virtual void prepare(float sampleRate, int buffersize, const juce::AudioProcessor::BusesLayout& bussesLayout)
+    {
+        for (auto voice : voices )
+        {
+            voice->prepare(sampleRate, buffersize, bussesLayout);
         }
     }
     
