@@ -21,7 +21,7 @@ namespace sketchbook
         return false;
     }
 
-    static void attemptToLoadModuleList(juce::ValueTree currModuleList, juce::ValueTree moduleListToLoad, Context& context)
+    static void attemptToLoadModuleList(juce::ValueTree currModuleList, juce::ValueTree moduleListToLoad, juce::ValueTree fullParameterData, juce::UndoManager& undoManager)
     {
         using params = Module::ParamIdents;
         
@@ -42,7 +42,7 @@ namespace sketchbook
             //load module meta
             if (currModule.hasProperty(params::ENABLED))
             {
-                currModule.setProperty(params::ENABLED, moduleToLoad[params::ENABLED], &context.undoManager);
+                currModule.setProperty(params::ENABLED, moduleToLoad[params::ENABLED], &undoManager);
             }
             
             for (auto currParam : currModule.getChildWithName(params::PARAMETERS))
@@ -68,11 +68,11 @@ namespace sketchbook
                                                     float(paramToLoad[params::MIN]),
                                                     float(paramToLoad[params::MAX]));
                     
-                    currParam.setProperty(params::VALUE, clampedValue, &context.undoManager);
+                    currParam.setProperty(params::VALUE, clampedValue, &undoManager);
                 }
                 else if (currParam.getType() == params::PARAMETER_BOOL)
                 {
-                    currParam.setProperty(params::VALUE, paramToLoad[params::VALUE], &context.undoManager);
+                    currParam.setProperty(params::VALUE, paramToLoad[params::VALUE], &undoManager);
                 }
                 else if (currParam.getType() == params::PARAMETER_CHOICE)
                 {
@@ -80,13 +80,13 @@ namespace sketchbook
                     juce::String valueToLoad = paramToLoad[params::VALUE];
                     
                     if (options.contains(valueToLoad))
-                        currParam.setProperty(params::VALUE, paramToLoad[params::VALUE], &context.undoManager);
+                        currParam.setProperty(params::VALUE, paramToLoad[params::VALUE], &undoManager);
                     else
                         DBG("Attempting to load unknow options in param");
                 }
                 else if (currParam.getType() == params::PARAMETER_FILE)
                 {
-                    currParam.setProperty(params::VALUE, paramToLoad[params::VALUE], &context.undoManager);
+                    currParam.setProperty(params::VALUE, paramToLoad[params::VALUE], &undoManager);
                 }
                 else
                 {
@@ -95,15 +95,15 @@ namespace sketchbook
                 }
                 
                 //then copy the modulations -- have to check the inputs and outputs still exist
-                currParam.removeAllChildren(&context.undoManager);
+                currParam.removeAllChildren(&undoManager);
                 for (auto mapping : paramToLoad)
                 {
                     if (mapping.getType() != params::MODULATION)
                         continue;
                     
-                    if (isValidModulationSourceName(mapping[params::MODULATION_SOURCE].toString(), context.parameterData))
+                    if (isValidModulationSourceName(mapping[params::MODULATION_SOURCE].toString(), fullParameterData))
                     {
-                        currParam.addChild(mapping.createCopy(), -1, &context.undoManager);
+                        currParam.addChild(mapping.createCopy(), -1, &undoManager);
                     }
                     else
                     {
@@ -116,27 +116,30 @@ namespace sketchbook
         }
     }
 
-    static inline void loadPreviousPluginState(sketchbook::Context& context, juce::ValueTree stateToLoad)
+    static inline void loadPreviousPluginState(juce::ValueTree stateToLoad, juce::ValueTree currentState, juce::UndoManager& undoManager)
     {
         using params = Module::ParamIdents;
         
-        context.undoManager.beginNewTransaction("Preset_Change");
-        
-        //copy over new meta data
-        
+        undoManager.beginNewTransaction("Preset_Change");
         
         //load data from modules and parameters
-        attemptToLoadModuleList(context.parameterData.getChildWithName(params::MODULES),
+        attemptToLoadModuleList(currentState.getChildWithName(params::MODULES),
                                 stateToLoad.getChildWithName(params::MODULES),
-                                context);
+                                currentState, undoManager);
         
-        attemptToLoadModuleList(context.parameterData.getChildWithName(params::MODULATION_SOURCES),
+        attemptToLoadModuleList(currentState.getChildWithName(params::MODULATION_SOURCES),
                                 stateToLoad.getChildWithName(params::MODULATION_SOURCES),
-                                context);
+                                currentState, undoManager);
         
-        attemptToLoadModuleList(context.parameterData.getChildWithName(params::EFFECT_FILTERS),
+        attemptToLoadModuleList(currentState.getChildWithName(params::EFFECT_FILTERS),
                                 stateToLoad.getChildWithName(params::EFFECT_FILTERS),
-                                context);
+                                currentState, undoManager);
+        
+    }
+
+    static inline void loadPreviousPluginState(sketchbook::Context& context, juce::ValueTree stateToLoad)
+    {
+        loadPreviousPluginState(stateToLoad, context.parameterData, context.undoManager);
     }
 
 } // end namespace sketchbook

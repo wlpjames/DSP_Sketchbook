@@ -104,7 +104,7 @@ void RingBuffer::mapBufferToData(AudioBuffer<float>& buffer)
     {
         buffer.clear();
         buffer.copyFrom(0, 0, data, 0, writePoint, len - writePoint);
-        buffer.copyFrom(0, len-(writePoint), data, 0, 0, writePoint);
+        buffer.copyFrom(0, len-(writePoint), data, 0, 0, writePoint-1);
     }
     else
     {
@@ -134,7 +134,6 @@ Module::ParameterInternal::ParameterInternal(juce::String name, std::function<vo
     
     //send an initial value to the callback
     setValue(data[Module::ParamIdents::VALUE]);
-    //paramChangedCallback(getValue());
 }
 
 //integer param
