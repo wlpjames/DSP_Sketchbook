@@ -66,11 +66,11 @@ int RingBuffer::getSize()
 
 void RingBuffer::appendSingleSample(float sample)
 {
+    data.setSample(0, writePoint, sample);
+    
     writePoint += 1;
     if (writePoint >= len)
         writePoint = 0;
-    
-    data.setSample(0, writePoint, sample);
 }
 
 float RingBuffer::getLastSample()
@@ -112,6 +112,34 @@ void RingBuffer::mapBufferToData(AudioBuffer<float>& buffer)
     }
 }
 
+int RingBuffer::readNewData(AudioBuffer<float>& buffer)
+{
+    jassert(buffer.getNumChannels() == 1);
+    int numSamples = 0;
+    
+    if (writePoint > readPoint)
+    {
+        numSamples = writePoint - readPoint;
+        jassert(buffer.getNumSamples() > numSamples);
+        
+        buffer.copyFrom(0, 0, data, 0, readPoint, numSamples);
+    }
+    else if (writePoint < readPoint)
+    {
+        numSamples = (len - readPoint) + writePoint;
+        jassert(buffer.getNumSamples() > numSamples);
+        
+        buffer.copyFrom(0, 0, data, 0, readPoint, (len - readPoint));
+        buffer.copyFrom(0, len - readPoint, data, 0, 0, writePoint);
+    }
+    
+    readPoint += numSamples;
+    if (readPoint >= len)
+        readPoint -= len;
+    
+    return numSamples;
+}
+
 //float param
 Module::ParameterInternal::ParameterInternal(juce::String name, std::function<void(float)> callback, float _initialValue, float _min, float _max, const std::optional<float> centreSkew)
 : parameterValue(_initialValue)
@@ -134,7 +162,6 @@ Module::ParameterInternal::ParameterInternal(juce::String name, std::function<vo
     
     //send an initial value to the callback
     setValue(data[Module::ParamIdents::VALUE]);
-    //paramChangedCallback(getValue());
 }
 
 //integer param
@@ -406,6 +433,13 @@ Module::Module()
 Module::~Module() {}
 
 void Module::prepareToPlay(float samplerate, int buffersize) {}
+
+void Module::prepareToPlay(float samplerate, int buffersize, const juce::AudioProcessor::BusesLayout& busesLayout)
+{
+    //default to simpler function
+    ignoreUnused(busesLayout);
+    prepareToPlay(samplerate, buffersize);
+}
 
 void Module::noteOn(const NoteOnEvent& event) {}
 

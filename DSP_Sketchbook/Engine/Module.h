@@ -47,8 +47,17 @@ class RingBuffer
      */
     void mapBufferToData(juce::AudioBuffer<float>& buffer);
     
+    /*
+     reads any new data into an audio buffer
+     return the amount of samples read
+     
+     preferably use a buffer larger than the internal buffer (see getSize())
+     */
+    int readNewData(juce::AudioBuffer<float>& buffer);
+    
     juce::AudioBuffer<float> data;
     int writePoint = 0;
+    int readPoint  = 0;
     int len = 0;
 };
 
@@ -231,6 +240,8 @@ class Module : public juce::ValueTree::Listener
         }
     };
     
+    using BusesLayout = juce::AudioProcessor::BusesLayout;
+    
 public:
     
     Module();
@@ -241,6 +252,7 @@ public:
     //  Virtual Functions
     //-------------------------------------------------------
     virtual void prepareToPlay(float samplerate, int buffersize);
+    virtual void prepareToPlay(float samplerate, int buffersize, const BusesLayout& busesLayout);
     
     virtual void noteOn(const NoteOnEvent& event);
     
