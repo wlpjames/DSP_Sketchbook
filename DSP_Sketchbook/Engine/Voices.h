@@ -139,12 +139,12 @@ class Voice : public juce::ValueTree::Listener
     {
         moduleList.forEach([&] (auto& mod, auto)
         {
-            mod.prepareToPlay(samplerate, buffersize);
+            static_cast<Module&>(mod).prepareToPlay(samplerate, buffersize);
         });
         
         modulationSourceList.forEach([&] (auto& mod, auto)
         {
-            mod.prepareToPlay(samplerate, buffersize);
+            static_cast<Module&>(mod).prepareToPlay(samplerate, buffersize);
         });
         
         voiceEnvelope.prepareToPlay(samplerate, buffersize);
@@ -155,12 +155,12 @@ class Voice : public juce::ValueTree::Listener
     {
         moduleList.forEach([&] (auto& mod, auto)
         {
-            mod.prepareToPlay(samplerate, buffersize, bussesLayout);
+            static_cast<Module&>(mod).prepareToPlay(samplerate, buffersize, bussesLayout);
         });
         
         modulationSourceList.forEach([&] (auto& mod, auto)
         {
-            mod.prepareToPlay(samplerate, buffersize);
+            static_cast<Module&>(mod).prepareToPlay(samplerate, buffersize);
         });
         
         voiceEnvelope.prepareToPlay(samplerate, buffersize);

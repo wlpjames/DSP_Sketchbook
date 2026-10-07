@@ -252,6 +252,7 @@ public:
     //  Virtual Functions
     //-------------------------------------------------------
     virtual void prepareToPlay(float samplerate, int buffersize);
+    
     virtual void prepareToPlay(float samplerate, int buffersize, const BusesLayout& busesLayout);
     
     virtual void noteOn(const NoteOnEvent& event);

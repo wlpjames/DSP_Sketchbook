@@ -432,7 +432,10 @@ Module::Module()
 
 Module::~Module() {}
 
-void Module::prepareToPlay(float samplerate, int buffersize) {}
+void Module::prepareToPlay(float samplerate, int buffersize)
+{
+    ignoreUnused(samplerate, buffersize);
+}
 
 void Module::prepareToPlay(float samplerate, int buffersize, const juce::AudioProcessor::BusesLayout& busesLayout)
 {
@@ -441,7 +444,10 @@ void Module::prepareToPlay(float samplerate, int buffersize, const juce::AudioPr
     prepareToPlay(samplerate, buffersize);
 }
 
-void Module::noteOn(const NoteOnEvent& event) {}
+void Module::noteOn(const NoteOnEvent& event)
+{
+    ignoreUnused(event);
+}
 
 void Module::noteOff(bool) {}
 
@@ -453,7 +459,10 @@ void Module::reset()
         p->reset();
 }
 
-void Module::applyMidi(const MidiMessage& message) {}
+void Module::applyMidi(const MidiMessage& message)
+{
+    ignoreUnused(message);
+}
 
 void Module::process(juce::AudioBuffer<float>& buffer)
 {

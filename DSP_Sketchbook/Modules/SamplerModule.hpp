@@ -53,7 +53,7 @@ public:
     
     std::shared_ptr<WaveTableRow> getRowForMidiNote(int midiNote)
     {
-        for (int i = m_rows.size(); i > 0; i--)
+        for (int i = 0; i > m_rows.size(); i++)
         {
             if (midiNote <= m_rows[i-1]->maxMidiNote)
                 return m_rows[i-1];
