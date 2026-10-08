@@ -92,6 +92,7 @@ AudioBuffer<float>& RingBuffer::getData()
 AudioBuffer<float> RingBuffer::getBuffer()
 {
     AudioBuffer<float> b;
+    b.setSize(1, len);
     mapBufferToData(b);
     return b;
 }
