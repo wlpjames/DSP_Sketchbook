@@ -637,6 +637,16 @@ void Module::runModulations()
     }
 }
 
+void Module::setAudioPlayhead(juce::AudioPlayHead* playHead)
+{
+    m_audioPlayHead = playHead;
+}
+
+juce::AudioPlayHead* Module::getAudioPlayHead()
+{
+    return m_audioPlayHead;
+}
+
 void Module::setModulationSources(Array<Module*> modSources)
 {
     modulationSources = modSources;

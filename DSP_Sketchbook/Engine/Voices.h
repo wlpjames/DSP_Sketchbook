@@ -401,6 +401,20 @@ class Voice : public juce::ValueTree::Listener
         });
     }
     
+    void setPlayHead(juce::AudioPlayHead* playHead)
+    {
+        moduleList.forEach([&] (auto& mod, auto)
+        {
+            mod.setAudioPlayhead(playHead);
+        });
+        
+        //set data in each mod source
+        modulationSourceList.forEach([&] (auto& mod, auto)
+        {
+            mod.setAudioPlayhead(playHead);
+        });
+    }
+    
     private:
     
     void valueTreePropertyChanged(juce::ValueTree &tree, const juce::Identifier &property)
@@ -580,6 +594,16 @@ public:
         m_voiceModeData.addListener(this);
         jassert(m_voiceModeData.isValid());
         valueTreePropertyChanged(m_voiceModeData, Module::ParamIdents::VALUE);
+    }
+    
+    void setPlayHead(juce::AudioPlayHead* playHead)
+    {
+        for (auto& voice : voices)
+        {
+            voice->setPlayHead(playHead);
+        }
+        
+        
     }
     
 private:

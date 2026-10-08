@@ -91,7 +91,6 @@ class Module : public juce::ValueTree::Listener
 
     //------ ------ ------ ------ ------ ------
     //------ ------ ------ ------ ------ ------
-    
     enum VoiceMonitorType
     {
         adsr, silenceDetection
@@ -301,6 +300,10 @@ public:
     //parameters and calculate their next values
     void runModulations();
     
+    void setAudioPlayhead(juce::AudioPlayHead* playHead);
+    
+    juce::AudioPlayHead* getAudioPlayHead();
+    
     static juce::ValueTree getDefaultState(juce::String name)
     {
         juce::ValueTree output(ParamIdents::MODULE);
@@ -388,6 +391,7 @@ public:
     VoiceMonitorType voiceMonitorType = adsr;
     int instanceId = -1; ///If there are more that one instances of a module, this number will be appened to the name - else will be -1
     bool isDefaultEnabled = true;
+    juce::AudioPlayHead* m_audioPlayHead = nullptr;
     std::shared_ptr<SharedData> m_sharedData;
 };
 

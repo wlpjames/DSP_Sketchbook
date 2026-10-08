@@ -160,12 +160,18 @@ public:
     void processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
     {
         juce::ScopedNoDenormals noDenormals;
+        
+        //ensure the playhead is properly set
+        audioEngine.setAudioPlayHead(getPlayHead());
 
+        //clear messages from UI
         context.midiMessageCollector.removeNextBlockOfMessages (midiMessages, buffer.getNumSamples());
 
+        //clear inputs
         for (int i = getTotalNumInputChannels(); i < getTotalNumOutputChannels(); ++i)
             buffer.clear (i, 0, buffer.getNumSamples());
 
+        //process audio
         audioEngine.process(buffer, midiMessages, 0, buffer.getNumSamples());
         scopeDataCollector.process (buffer.getReadPointer (0), (size_t) buffer.getNumSamples());
         midiMessages.clear();

@@ -23,6 +23,7 @@ struct Context
     std::unique_ptr<sketchbook::KeyboardWindow> keyboardWindow;
     juce::String projectName;
     juce::UndoManager undoManager;
+    juce::AudioPlayHead* audioPlayhead = nullptr;
     
     //TODO: this is here as a work around to acessing
     //TODO: unknown templated functions, a beter method should

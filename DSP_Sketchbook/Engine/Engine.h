@@ -249,6 +249,16 @@ class AudioEngine
         });
     }
     
+    void setAudioPlayHead(juce::AudioPlayHead* playHead)
+    {
+        sketchbook::VoiceController<VoiceModules, ModulationSources>::setPlayHead(playHead);
+        
+        fxChain.forEach([&] (auto& mod, auto)
+        {
+            mod.setAudioPlayhead(playHead);
+        });
+    }
+    
     private:
     
     static juce::ValueTree getDefaultData()
